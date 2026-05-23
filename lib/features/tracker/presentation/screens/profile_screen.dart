@@ -5,8 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gymhelper/features/tracker/presentation/cubit/tracker_cubit.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart'; // НОВИЙ ІМПОРТ
 import '../../../../data/models/user_model.dart';
-import '../../../../core/constants/color_constants.dart'; // Обов'язково перевір цей імпорт під свій шлях
+import '../../../../core/constants/color_constants.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -60,15 +61,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  // Метод для вибору зображення з галереї
+  // ОНОВЛЕНИЙ МЕТОД З ОБРІЗКОЮ ФОТО
   Future<void> _pickAvatar() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
     
     if (pickedFile != null) {
-      setState(() {
-        _avatarPath = pickedFile.path;
-      });
+      // Запускаємо екран кроппінгу
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1), // Фіксуємо квадрат 1:1
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Відцентрувати фото',
+            toolbarColor: AppColors.accent,
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true, // Забороняємо міняти пропорції
+            hideBottomControls: true, // Ховаємо зайві кнопки
+          ),
+          IOSUiSettings(
+            title: 'Відцентрувати фото',
+            aspectRatioLockEnabled: true,
+            resetButtonHidden: true,
+          ),
+        ],
+      );
+
+      if (croppedFile != null) {
+        setState(() {
+          _avatarPath = croppedFile.path;
+        });
+      }
     }
   }
 
@@ -79,7 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         weight: double.parse(_weightController.text.trim()),
         height: double.parse(_heightController.text.trim()),
         goal: _selectedGoal,
-        avatarPath: _avatarPath, // Додаємо шлях до обраної аватарки в модель
+        avatarPath: _avatarPath, 
       );
 
       context.read<TrackerCubit>().saveUserProfile(user);
@@ -108,7 +132,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Блок Аватарки користувача
                 Center(
                   child: Stack(
                     children: [
@@ -145,7 +168,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Блок з порадами (Градієнтний стиль)
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 500),
                   child: Container(
@@ -165,7 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(IconsaxPlusBold.lamp_on, color: AppColors.primary),
+                        Icon(IconsaxPlusBold.lamp_on, color: AppColors.lamp),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -184,7 +206,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 30),
 
-                // Поля вводу тексту
                 TextFormField(
                   controller: _nameController,
                   maxLength: 30,
@@ -256,7 +277,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Оновлена кнопка вибору мети із FittedBox проти вилізання тексту
                 SegmentedButton<UserGoal>(
                   style: SegmentedButton.styleFrom(
                     backgroundColor: AppColors.surface,
@@ -286,7 +306,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 40),
 
-                // Красива градієнтна кнопка збереження запису
                 Container(
                   height: 56,
                   decoration: BoxDecoration(

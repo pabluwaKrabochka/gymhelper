@@ -31,7 +31,20 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.system,
-        // Якщо профіль є - йдемо в додаток, якщо ні - на екран створення
+        
+        // --- ГЛОБАЛЬНИЙ UNFOCUS КЛАВІАТУРИ ---
+        builder: (context, child) {
+          return GestureDetector(
+            onTap: () {
+              // Ця команда знімає фокус з будь-якого активного текстового поля
+              FocusManager.instance.primaryFocus?.unfocus();
+            },
+            behavior: HitTestBehavior.opaque, // Працює навіть якщо натиснути на порожній фон
+            child: child,
+          );
+        },
+        // ------------------------------------
+
         home: hasProfile ? const MainScreen() : const ProfileSetupScreen(),
         debugShowCheckedModeBanner: false,
         localizationsDelegates: const [

@@ -130,7 +130,7 @@ class HomeScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(IconsaxPlusLinear.arrow_left_2),
+            icon: const Icon(IconsaxPlusLinear.arrow_square_left),
             onPressed: () {
               context.read<TrackerCubit>().changeDate(
                 currentDate.subtract(const Duration(days: 1)),
@@ -142,7 +142,7 @@ class HomeScreen extends StatelessWidget {
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           IconButton(
-            icon: const Icon(IconsaxPlusLinear.arrow_right_3),
+            icon: const Icon(IconsaxPlusLinear.arrow_square_right),
             onPressed: isToday ? null : () {
               context.read<TrackerCubit>().changeDate(
                 currentDate.add(const Duration(days: 1)),

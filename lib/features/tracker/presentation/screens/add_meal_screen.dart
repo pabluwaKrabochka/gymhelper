@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gymhelper/features/meals/food_database.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import '../../../../data/models/meal_record_model.dart';
+import '../../../../core/constants/color_constants.dart';
 import '../cubit/tracker_cubit.dart';
+
 
 class AddMealScreen extends StatefulWidget {
   final MealRecordModel? mealToEdit;
@@ -17,14 +20,16 @@ class AddMealScreen extends StatefulWidget {
 class _AddMealScreenState extends State<AddMealScreen> {
   final _formKey = GlobalKey<FormState>();
   
-  // Контролери для тексту
   late TextEditingController _nameController;
+  late TextEditingController _weightGramsController; 
+  
   late TextEditingController _caloriesController;
   late TextEditingController _proteinsController;
   late TextEditingController _fatsController;
   late TextEditingController _carbsController;
   
   late MealType _selectedMealType;
+  FoodItemData? _selectedFoodFromDb; 
 
   bool get isEditing => widget.mealToEdit != null;
 
@@ -32,9 +37,9 @@ class _AddMealScreenState extends State<AddMealScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.mealToEdit?.foodName ?? '');
-    _caloriesController = TextEditingController(text: widget.mealToEdit?.calories.toString() ?? '');
+    _weightGramsController = TextEditingController(text: isEditing ? '100' : ''); 
     
-    // Заповнюємо БЖВ, якщо редагуємо
+    _caloriesController = TextEditingController(text: widget.mealToEdit?.calories.toString() ?? '');
     _proteinsController = TextEditingController(text: widget.mealToEdit?.proteins.toString() ?? '');
     _fatsController = TextEditingController(text: widget.mealToEdit?.fats.toString() ?? '');
     _carbsController = TextEditingController(text: widget.mealToEdit?.carbs.toString() ?? '');
@@ -45,6 +50,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _weightGramsController.dispose();
     _caloriesController.dispose();
     _proteinsController.dispose();
     _fatsController.dispose();
@@ -52,12 +58,32 @@ class _AddMealScreenState extends State<AddMealScreen> {
     super.dispose();
   }
 
+  void _calculateMacros() {
+    if (_selectedFoodFromDb == null) return;
+    
+    final grams = double.tryParse(_weightGramsController.text.trim()) ?? 0;
+    if (grams <= 0) {
+      _caloriesController.clear();
+      _proteinsController.clear();
+      _fatsController.clear();
+      _carbsController.clear();
+      return;
+    }
+
+    final multiplier = grams / 100;
+
+    setState(() {
+      _caloriesController.text = (_selectedFoodFromDb!.calories * multiplier).round().toString();
+      _proteinsController.text = (_selectedFoodFromDb!.proteins * multiplier).toStringAsFixed(1);
+      _fatsController.text = (_selectedFoodFromDb!.fats * multiplier).toStringAsFixed(1);
+      _carbsController.text = (_selectedFoodFromDb!.carbs * multiplier).toStringAsFixed(1);
+    });
+  }
+
   void _saveMeal() {
     if (_formKey.currentState!.validate()) {
       final name = _nameController.text.trim();
       final calories = int.tryParse(_caloriesController.text.trim()) ?? 0;
-      
-      // Парсимо БЖВ (якщо пусто, то 0.0)
       final proteins = double.tryParse(_proteinsController.text.trim()) ?? 0.0;
       final fats = double.tryParse(_fatsController.text.trim()) ?? 0.0;
       final carbs = double.tryParse(_carbsController.text.trim()) ?? 0.0;
@@ -83,7 +109,6 @@ class _AddMealScreenState extends State<AddMealScreen> {
           mealType: _selectedMealType,
         );
       }
-
       Navigator.pop(context);
     }
   }
@@ -91,47 +116,128 @@ class _AddMealScreenState extends State<AddMealScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(isEditing ? 'Редагувати запис' : 'Додати прийом їжі'),
         centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Form(
             key: _formKey,
-            child: SingleChildScrollView( // Додав скрол, щоб клавіатура не перекривала поля
+            child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Що ви з\'їли?',
-                      prefixIcon: const Icon(IconsaxPlusLinear.reserve),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    validator: (value) => (value == null || value.trim().isEmpty) ? 'Будь ласка, введіть назву' : null,
+                  
+                  Autocomplete<FoodItemData>(
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      if (textEditingValue.text.isEmpty) {
+                        return const Iterable<FoodItemData>.empty();
+                      }
+                      return foodDatabase.where((food) => 
+                        food.name.toLowerCase().contains(textEditingValue.text.toLowerCase())
+                      );
+                    },
+                    displayStringForOption: (FoodItemData option) => option.name,
+                    onSelected: (FoodItemData selection) {
+                      _selectedFoodFromDb = selection;
+                      _nameController.text = selection.name;
+                      _calculateMacros(); 
+                      FocusScope.of(context).unfocus(); 
+                    },
+                    fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+                      if (!isEditing && _nameController.text.isEmpty) {
+                        _nameController = textEditingController;
+                      }
+                      
+                      return TextFormField(
+                        controller: textEditingController,
+                        focusNode: focusNode,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        decoration: InputDecoration(
+                          labelText: 'Що ви з\'їли? (Почніть вводити)',
+                          hintText: 'Наприклад: Гречка',
+                          prefixIcon: const Icon(IconsaxPlusLinear.reserve),
+                          filled: true,
+                          fillColor: AppColors.surface,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        onChanged: (val) {
+                          _nameController.text = val;
+                          _selectedFoodFromDb = null; 
+                        },
+                        validator: (value) => (value == null || value.trim().isEmpty) ? 'Будь ласка, введіть назву' : null,
+                      );
+                    },
+                    optionsViewBuilder: (context, onSelected, options) {
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: Material(
+                          elevation: 4.0,
+                          borderRadius: BorderRadius.circular(16),
+                          child: SizedBox(
+                            width: MediaQuery.of(context).size.width - 40,
+                            height: 200,
+                            child: ListView.builder(
+                              padding: const EdgeInsets.all(8.0),
+                              itemCount: options.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                final option = options.elementAt(index);
+                                return ListTile(
+                                  title: Text(option.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  subtitle: Text('${option.calories} ккал / 100г'),
+                                  onTap: () => onSelected(option),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
-                  
+
+                  TextFormField(
+                    controller: _weightGramsController,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
+                    decoration: InputDecoration(
+                      labelText: 'Вага порції (грами)',
+                      hintText: 'Наприклад: 150',
+                      prefixIcon: const Icon(IconsaxPlusLinear.weight_1),
+                      filled: true,
+                      fillColor: AppColors.primary.withAlpha(25), 
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    onChanged: (val) => _calculateMacros(), 
+                  ),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
+
                   TextFormField(
                     controller: _caloriesController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: 'Калорійність (ккал)',
                       prefixIcon: const Icon(IconsaxPlusLinear.flash),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                      filled: true,
+                      fillColor: AppColors.surface,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) return 'Введіть кількість калорій';
-                      if (int.tryParse(value.trim()) == null) return 'Введіть коректне число';
-                      return null;
-                    },
                   ),
                   const SizedBox(height: 16),
 
-                  // Рядок для вводу БЖВ (Білки, Жири, Вуглеводи)
                   Row(
                     children: [
                       Expanded(
@@ -140,7 +246,9 @@ class _AddMealScreenState extends State<AddMealScreen> {
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
                             labelText: 'Білки (г)',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                            filled: true,
+                            fillColor: AppColors.surface,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                           ),
                         ),
                       ),
@@ -151,7 +259,9 @@ class _AddMealScreenState extends State<AddMealScreen> {
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
                             labelText: 'Жири (г)',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                            filled: true,
+                            fillColor: AppColors.surface,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                           ),
                         ),
                       ),
@@ -162,7 +272,9 @@ class _AddMealScreenState extends State<AddMealScreen> {
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
                             labelText: 'Вуглев. (г)',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                            filled: true,
+                            fillColor: AppColors.surface,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                           ),
                         ),
                       ),
@@ -172,35 +284,51 @@ class _AddMealScreenState extends State<AddMealScreen> {
                   const SizedBox(height: 24),
                   const Text('Тип прийому їжі', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: MealType.values.map((type) {
-                      final isSelected = _selectedMealType == type;
-                      return ChoiceChip(
-                        label: Text(_getMealTypeName(type)),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          if (selected) setState(() => _selectedMealType = type);
-                        },
-                        selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                      );
-                    }).toList(),
+                  
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: MealType.values.map((type) {
+                        final isSelected = _selectedMealType == type;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: ChoiceChip(
+                            label: Text(_getMealTypeName(type)),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              if (selected) setState(() => _selectedMealType = type);
+                            },
+                            selectedColor: AppColors.primary,
+                            labelStyle: TextStyle(
+                              color: isSelected ? Colors.white : AppColors.textPrimary,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ),
                   
                   const SizedBox(height: 40),
                   
-                  SizedBox(
+                  Container(
                     width: double.infinity,
                     height: 56,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.premiumGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(color: AppColors.primary.withAlpha(76), blurRadius: 12, offset: const Offset(0, 4)),
+                      ],
+                    ),
                     child: ElevatedButton(
                       onPressed: _saveMeal,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: Text(isEditing ? 'Оновити' : 'Зберегти', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                      child: Text(isEditing ? 'Оновити' : 'Зберегти', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                     ),
                   ),
                 ],

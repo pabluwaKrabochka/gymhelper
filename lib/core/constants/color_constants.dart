@@ -6,7 +6,7 @@ class AppColors {
   static const Color accent = Color(0xFF10B981);  // Свіжий зелений (для балансу)
   static const Color background = Color(0xFFF8FAFC); // Чистий світлий фон
   static const Color surface = Color(0xFFFFFFFF);    // Колір карток
-  
+  static const Color lamp = Color.fromARGB(255, 255, 210, 63);
   // Текст
   static const Color textPrimary = Color(0xFF0F172A);
   static const Color textSecondary = Color(0xFF64748B);

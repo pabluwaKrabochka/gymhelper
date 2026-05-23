@@ -10,7 +10,7 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.background,
       
       // ВКАЗУЄМО НАШ НОВИЙ ШРИФТ ГЛОБАЛЬНО
-      fontFamily: 'PlusJakarta', 
+      fontFamily: 'ScienceGothic', 
 
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.background,
@@ -19,7 +19,7 @@ class AppTheme {
         centerTitle: true,
         // Заголовок AppBar завжди Bold:
         titleTextStyle: TextStyle(
-          fontFamily: 'PlusJakarta',
+          fontFamily: 'ScienceGothic',
           fontSize: 20,
           fontWeight: FontWeight.bold, // Flutter автоматично візьме PlusJakartaSans-Bold.ttf
           color: AppColors.textPrimary,
@@ -42,7 +42,7 @@ class AppTheme {
       colorSchemeSeed: AppColors.primary,
       
       // Не забуваємо і для темної теми
-      fontFamily: 'PlusJakarta', 
+      fontFamily: 'ScienceGothic', 
 
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.grey[900],
@@ -50,7 +50,7 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
         titleTextStyle: const TextStyle(
-          fontFamily: 'PlusJakarta',
+          fontFamily: 'ScienceGothic',
           fontSize: 20,
           fontWeight: FontWeight.bold,
           color: Colors.white,
