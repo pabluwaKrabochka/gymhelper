@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
+import 'package:gymhelper/core/constants/color_constants.dart';
+
 
 class AppTheme {
   // Світла тема
@@ -29,7 +30,7 @@ class AppTheme {
       // ВИПРАВЛЕНО: Використовуємо DialogThemeData
       dialogTheme: DialogThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: AppColors.card,
+        backgroundColor: AppColors.surface,
       ),
     );
   }

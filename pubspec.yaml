@@ -65,7 +65,7 @@ flutter:
     - assets/
 
   fonts:
-    - family: ShantellSans 
+    - family: ScienceGothic 
       fonts:
         - asset: fonts/ScienceGothic/ScienceGothic-Thin.ttf
           weight: 100

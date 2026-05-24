@@ -33,6 +33,14 @@ class TrackerCubit extends Cubit<TrackerState> {
     emit(state.copyWith(user: user));
   }
 
+// --- Оновлення лише аватарки ---
+  void updateAvatar(String newPath) {
+    if (state.user != null) {
+      final updatedUser = state.user!.copyWith(avatarPath: newPath);
+      saveUserProfile(updatedUser); // Одразу записуємо в SharedPreferences
+    }
+  }
+
   // --- ПІДРАХУНОК МАКРОСІВ (КБЖВ) ЗА ДЕНЬ ---
   int get totalDailyCalories => state.meals.fold(0, (sum, item) => sum + item.calories);
   double get totalDailyProteins => state.meals.fold(0.0, (sum, item) => sum + item.proteins);

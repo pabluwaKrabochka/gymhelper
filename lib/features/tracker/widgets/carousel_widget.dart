@@ -5,9 +5,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:gymhelper/core/constants/color_constants.dart';
 import 'package:gymhelper/core/constants/home_constants.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
-import '../../../../app/theme/app_colors.dart'; // Підключаємо нашу тему
+
 
 class PromoCarousel extends StatefulWidget {
   final List<dynamic>? currencyRates;
@@ -248,7 +249,7 @@ class _PromoCarouselState extends State<PromoCarousel> {
     if (rates == null || rates.isEmpty) {
       return Container(
         margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(20)),
+        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20)),
         child: const Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
@@ -257,7 +258,7 @@ class _PromoCarouselState extends State<PromoCarousel> {
       margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4), // Відступи для тіні
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(

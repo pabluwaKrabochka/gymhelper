@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:gymhelper/core/constants/color_constants.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
-import '../../../../../app/theme/app_colors.dart';
+
 
 class AnalyticsCategoryList extends StatelessWidget {
   final Map<String, double> totals;

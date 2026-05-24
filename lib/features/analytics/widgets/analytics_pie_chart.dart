@@ -2,7 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../../../../app/theme/app_colors.dart';
+import 'package:gymhelper/core/constants/color_constants.dart';
+
 
 class AnalyticsPieChart extends StatefulWidget {
   final Map<String, double> totals;

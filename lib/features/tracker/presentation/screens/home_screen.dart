@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gymhelper/app/utils/custom_snackbar.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:intl/intl.dart';
 import '../cubit/tracker_cubit.dart';
@@ -25,7 +26,6 @@ class HomeScreen extends StatelessWidget {
 
           final cubit = context.read<TrackerCubit>();
           
-          // Беремо цілі з профілю або ставимо стандартні заглушки
           final goalCalories = state.user?.dailyCalories ?? 2000;
           final goalProteins = state.user?.dailyProteins ?? 150;
           final goalFats = state.user?.dailyFats ?? 70;
@@ -39,11 +39,11 @@ class HomeScreen extends StatelessWidget {
               _buildDateSelector(context, state.selectedDate),
               const SizedBox(height: 20),
 
-              // Прогрес калорій
+              // Анімовані кільця калорій
               _buildCalorieProgress(consumedCalories, goalCalories, isOverLimit, context),
               const SizedBox(height: 20),
 
-              // Прогрес БЖВ
+              // Анімовані смужки БЖВ
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
@@ -59,59 +59,67 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 20),
               const Divider(),
 
-              // Список їжі
+              // Плавний перехід між порожнім екраном та списком їжі
               Expanded(
-                child: state.meals.isEmpty
-                    ? const Center(child: Text('Сьогодні ви ще нічого не записували.'))
-                    : ListView.builder(
-                        itemCount: state.meals.length,
-                        itemBuilder: (context, index) {
-                          final meal = state.meals[index];
-                          
-                          return Dismissible(
-                            key: ValueKey(meal.id),
-                            direction: DismissDirection.endToStart,
-                            background: Container(
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 20),
-                              color: Colors.red.shade400,
-                              child: const Icon(IconsaxPlusLinear.trash, color: Colors.white),
-                            ),
-                            onDismissed: (direction) {
-                              if (meal.id != null) {
-                                context.read<TrackerCubit>().deleteMealRecord(meal.id!);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('${meal.foodName} видалено')),
-                                );
-                              }
-                            },
-                            child: ListTile(
-                              leading: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primaryContainer,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(IconsaxPlusLinear.reserve),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    return FadeTransition(opacity: animation, child: child);
+                  },
+                  child: state.meals.isEmpty
+                      ? const Center(
+                          key: ValueKey('empty'), 
+                          child: Text('Сьогодні ви ще нічого не записували.')
+                        )
+                      : ListView.builder(
+                          key: const ValueKey('list'), // Ключі обов'язкові для AnimatedSwitcher
+                          itemCount: state.meals.length,
+                          itemBuilder: (context, index) {
+                            final meal = state.meals[index];
+                            
+                            return Dismissible(
+                              key: ValueKey(meal.id),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                color: Colors.red.shade400,
+                                child: const Icon(IconsaxPlusLinear.trash, color: Colors.white),
                               ),
-                              title: Text(meal.foodName),
-                              subtitle: Text('${_getMealTypeName(meal.mealType)} • ${meal.proteins}Б ${meal.fats}Ж ${meal.carbs}В'),
-                              trailing: Text(
-                                '${meal.calories} ккал',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                              ),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => AddMealScreen(mealToEdit: meal),
-                                  ),
-                                );
+                              onDismissed: (direction) {
+                                if (meal.id != null) {
+                                  context.read<TrackerCubit>().deleteMealRecord(meal.id!);
+                                  CustomSnackbar.showSuccess(context, '${meal.foodName} видалено');
+                                }
                               },
-                            ),
-                          );
-                        },
-                      ),
+                              child: ListTile(
+                                leading: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.primaryContainer,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(IconsaxPlusLinear.reserve),
+                                ),
+                                title: Text(meal.foodName),
+                                subtitle: Text('${_getMealTypeName(meal.mealType)} • ${meal.proteins} Б ${meal.fats} Ж ${meal.carbs} В'),
+                                trailing: Text(
+                                  '${meal.calories} ккал',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                ),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => AddMealScreen(mealToEdit: meal),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                ),
               ),
             ],
           );
@@ -137,9 +145,15 @@ class HomeScreen extends StatelessWidget {
               );
             },
           ),
-          Text(
-            isToday ? 'Сьогодні' : formatter.format(currentDate),
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          // Анімація тексту дати (щоб вона теж м'яко змінювалась)
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+            child: Text(
+              isToday ? 'Сьогодні' : formatter.format(currentDate),
+              key: ValueKey(currentDate.toIso8601String()),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
           ),
           IconButton(
             icon: const Icon(IconsaxPlusLinear.arrow_square_right),
@@ -164,11 +178,19 @@ class HomeScreen extends StatelessWidget {
         SizedBox(
           width: 150,
           height: 150,
-          child: CircularProgressIndicator(
-            value: progress,
-            strokeWidth: 12,
-            backgroundColor: Colors.grey.shade200,
-            color: color,
+          // Плавне заповнення кола
+          child: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: progress),
+            duration: const Duration(milliseconds: 800),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, _) {
+              return CircularProgressIndicator(
+                value: value,
+                strokeWidth: 12,
+                backgroundColor: Colors.grey.shade200,
+                color: color,
+              );
+            },
           ),
         ),
         Column(
@@ -199,12 +221,20 @@ class HomeScreen extends StatelessWidget {
         const SizedBox(height: 8),
         SizedBox(
           width: 80,
-          child: LinearProgressIndicator(
-            value: progress,
-            backgroundColor: Colors.grey.shade200,
-            color: color,
-            minHeight: 8,
-            borderRadius: BorderRadius.circular(4),
+          // Плавне заповнення лінії
+          child: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: progress),
+            duration: const Duration(milliseconds: 800),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, _) {
+              return LinearProgressIndicator(
+                value: value,
+                backgroundColor: Colors.grey.shade200,
+                color: color,
+                minHeight: 8,
+                borderRadius: BorderRadius.circular(4),
+              );
+            },
           ),
         ),
         const SizedBox(height: 8),

@@ -2,8 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:gymhelper/core/constants/color_constants.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
-import '../../../../../app/theme/app_colors.dart';
 
 class AnalyticsTrendChart extends StatefulWidget {
   final Map<int, Map<String, double>> dailyCategoryTotals;

@@ -1,13 +1,14 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gymhelper/app/utils/custom_snackbar.dart';
 import 'package:gymhelper/features/tracker/presentation/cubit/tracker_cubit.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:image_cropper/image_cropper.dart'; // НОВИЙ ІМПОРТ
+import 'package:image_cropper/image_cropper.dart'; 
 import '../../../../data/models/user_model.dart';
 import '../../../../core/constants/color_constants.dart';
+import '../../../../core/constants/tips_database.dart'; 
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -24,14 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late UserGoal _selectedGoal;
   String? _avatarPath;
 
-  int _currentTipIndex = 0;
-  Timer? _tipTimer;
-
-  final List<String> _tips = [
-    'Рівномірний розподіл: Організм найкраще засвоює білок, якщо розділити добову норму на 3–5 прийомів (приблизно по 25–40 г за один раз).',
-    'Якість джерел: Віддавайте перевагу повноцінному тваринному білку (м\'ясо, риба, яйця, сир). Також враховуйте рослинний білок із бобових та злаків.',
-    'Розрахунок: Пам\'ятайте, що вага продукту не дорівнює вазі чистого білка. Наприклад, 100 г курячого філе містить близько 23–30 г білка.'
-  ];
+  int _currentTipIndex = 0; 
 
   @override
   void initState() {
@@ -42,14 +36,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _heightController = TextEditingController(text: user?.height.toString() ?? '');
     _selectedGoal = user?.goal ?? UserGoal.maintain;
     _avatarPath = user?.avatarPath;
-
-    _tipTimer = Timer.periodic(const Duration(seconds: 7), (timer) {
-      if (mounted) {
-        setState(() {
-          _currentTipIndex = (_currentTipIndex + 1) % _tips.length;
-        });
-      }
-    });
   }
 
   @override
@@ -57,28 +43,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _nameController.dispose();
     _weightController.dispose();
     _heightController.dispose();
-    _tipTimer?.cancel();
     super.dispose();
   }
 
-  // ОНОВЛЕНИЙ МЕТОД З ОБРІЗКОЮ ФОТО
+  void _changeTip() {
+    setState(() {
+      _currentTipIndex = (_currentTipIndex + 1) % healthTips.length;
+    });
+  }
+
   Future<void> _pickAvatar() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
     
     if (pickedFile != null) {
-      // Запускаємо екран кроппінгу
       final croppedFile = await ImageCropper().cropImage(
         sourcePath: pickedFile.path,
-        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1), // Фіксуємо квадрат 1:1
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1), 
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Відцентрувати фото',
-            toolbarColor: AppColors.accent,
+            toolbarColor: AppColors.primary,
             toolbarWidgetColor: Colors.white,
             initAspectRatio: CropAspectRatioPreset.square,
-            lockAspectRatio: true, // Забороняємо міняти пропорції
-            hideBottomControls: true, // Ховаємо зайві кнопки
+            lockAspectRatio: true, 
+            hideBottomControls: true, 
           ),
           IOSUiSettings(
             title: 'Відцентрувати фото',
@@ -88,10 +77,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       );
 
+      if (!mounted) return;
+
       if (croppedFile != null) {
         setState(() {
           _avatarPath = croppedFile.path;
         });
+        context.read<TrackerCubit>().updateAvatar(croppedFile.path);
       }
     }
   }
@@ -108,9 +100,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       context.read<TrackerCubit>().saveUserProfile(user);
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Профіль оновлено! Норми КБЖВ перераховані.')),
-      );
+      CustomSnackbar.showSuccess(context, 'Профіль оновлено! Норми КБЖВ перераховані.');
     }
   }
 
@@ -168,39 +158,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 500),
-                  child: Container(
-                    key: ValueKey<int>(_currentTipIndex),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.cardGradient,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withAlpha(12),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(IconsaxPlusBold.lamp_on, color: AppColors.lamp),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _tips[_currentTipIndex],
-                            style: const TextStyle(
-                              fontSize: 14, 
-                              height: 1.4, 
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w500,
+                GestureDetector(
+                  onTap: _changeTip,
+                  // ДОДАНО: AnimatedSize плавно змінює висоту всієї картки
+                  child: AnimatedSize(
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeInOutCubic, // М'який старт і м'яке гальмування
+                    alignment: Alignment.topCenter, // Картка розширюється вниз
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: AppColors.cardGradient,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withAlpha(12),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(IconsaxPlusBold.lamp_on, color: AppColors.primary),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Корисна порада',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary.withAlpha(180),
+                                ),
+                              ),
+                              const Spacer(),
+                              Icon(IconsaxPlusLinear.refresh, size: 16, color: AppColors.primary.withAlpha(120)),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 400),
+                            transitionBuilder: (Widget child, Animation<double> animation) {
+                              return FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0.0, 0.1), 
+                                    end: Offset.zero,
+                                  ).animate(animation),
+                                  child: child,
+                                ),
+                              );
+                            },
+                            child: Text(
+                              healthTips[_currentTipIndex],
+                              key: ValueKey<int>(_currentTipIndex), 
+                              style: const TextStyle(
+                                fontSize: 14, 
+                                height: 1.4, 
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -304,7 +328,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     setState(() => _selectedGoal = newSelection.first);
                   },
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 18),
 
                 Container(
                   height: 56,

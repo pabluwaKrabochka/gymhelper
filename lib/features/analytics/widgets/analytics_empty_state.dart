@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:gymhelper/core/constants/color_constants.dart';
 import 'package:lottie/lottie.dart';
-import '../../../../../app/theme/app_colors.dart';
+
 
 class AnalyticsEmptyState extends StatelessWidget {
   final bool isExpense;
