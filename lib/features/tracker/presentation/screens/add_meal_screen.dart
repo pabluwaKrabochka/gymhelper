@@ -7,7 +7,6 @@ import '../../../../data/models/meal_record_model.dart';
 import '../../../../core/constants/color_constants.dart';
 import '../cubit/tracker_cubit.dart';
 
-
 class AddMealScreen extends StatefulWidget {
   final MealRecordModel? mealToEdit;
 
@@ -20,15 +19,16 @@ class AddMealScreen extends StatefulWidget {
 class _AddMealScreenState extends State<AddMealScreen> {
   final _formKey = GlobalKey<FormState>();
   
-  late TextEditingController _nameController;
-  late TextEditingController _weightGramsController; 
+  TextEditingController? _autoCompleteController; 
   
+  late TextEditingController _weightGramsController;
   late TextEditingController _caloriesController;
   late TextEditingController _proteinsController;
   late TextEditingController _fatsController;
   late TextEditingController _carbsController;
-  
   late MealType _selectedMealType;
+  
+  // Додано: змінна для розуміння, чи їжа знайдена в базі
   FoodItemData? _selectedFoodFromDb; 
 
   bool get isEditing => widget.mealToEdit != null;
@@ -36,8 +36,6 @@ class _AddMealScreenState extends State<AddMealScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.mealToEdit?.foodName ?? '');
-    _weightGramsController = TextEditingController(text: isEditing ? '100' : ''); 
     
     _caloriesController = TextEditingController(text: widget.mealToEdit?.calories.toString() ?? '');
     _proteinsController = TextEditingController(text: widget.mealToEdit?.proteins.toString() ?? '');
@@ -45,11 +43,37 @@ class _AddMealScreenState extends State<AddMealScreen> {
     _carbsController = TextEditingController(text: widget.mealToEdit?.carbs.toString() ?? '');
     
     _selectedMealType = widget.mealToEdit?.mealType ?? MealType.breakfast;
+
+    String initialWeight = '';
+
+    // РОЗУМНЕ ВІДНОВЛЕННЯ ВАГИ ТА БАЗИ ДАНИХ
+    if (isEditing) {
+      try {
+        // Шукаємо страву в базі даних за іменем
+        _selectedFoodFromDb = foodDatabase.firstWhere(
+          (food) => food.name.toLowerCase() == widget.mealToEdit!.foodName.toLowerCase()
+        );
+        
+        // Якщо знайшли, вираховуємо оригінальну вагу через пропорцію: 
+        // (Збережені калорії / Калорії на 100г) * 100
+        if (_selectedFoodFromDb!.calories > 0) {
+          double grams = (widget.mealToEdit!.calories / _selectedFoodFromDb!.calories) * 100;
+          initialWeight = grams.round().toString();
+        } else if (_selectedFoodFromDb!.proteins > 0) {
+          double grams = (widget.mealToEdit!.proteins / _selectedFoodFromDb!.proteins) * 100;
+          initialWeight = grams.round().toString();
+        }
+      } catch (e) {
+        // Якщо страву не знайдено (користувач ввів вручну), нічого не робимо,
+        // залишаємо поля з калоріями як є.
+      }
+    }
+
+    _weightGramsController = TextEditingController(text: initialWeight); 
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
     _weightGramsController.dispose();
     _caloriesController.dispose();
     _proteinsController.dispose();
@@ -59,30 +83,40 @@ class _AddMealScreenState extends State<AddMealScreen> {
   }
 
   void _calculateMacros() {
+    // Якщо їжа не з бази - не можемо автоматично рахувати пропорції
     if (_selectedFoodFromDb == null) return;
     
+    if (!mounted) return;
+
     final grams = double.tryParse(_weightGramsController.text.trim()) ?? 0;
     if (grams <= 0) {
-      _caloriesController.clear();
-      _proteinsController.clear();
-      _fatsController.clear();
-      _carbsController.clear();
+      if (mounted) { 
+        setState(() {
+          _caloriesController.clear();
+          _proteinsController.clear();
+          _fatsController.clear();
+          _carbsController.clear();
+        });
+      }
       return;
     }
 
     final multiplier = grams / 100;
 
-    setState(() {
-      _caloriesController.text = (_selectedFoodFromDb!.calories * multiplier).round().toString();
-      _proteinsController.text = (_selectedFoodFromDb!.proteins * multiplier).toStringAsFixed(1);
-      _fatsController.text = (_selectedFoodFromDb!.fats * multiplier).toStringAsFixed(1);
-      _carbsController.text = (_selectedFoodFromDb!.carbs * multiplier).toStringAsFixed(1);
-    });
+    if (mounted) {
+      setState(() {
+        _caloriesController.text = (_selectedFoodFromDb!.calories * multiplier).round().toString();
+        _proteinsController.text = (_selectedFoodFromDb!.proteins * multiplier).toStringAsFixed(1);
+        _fatsController.text = (_selectedFoodFromDb!.fats * multiplier).toStringAsFixed(1);
+        _carbsController.text = (_selectedFoodFromDb!.carbs * multiplier).toStringAsFixed(1);
+      });
+    }
   }
 
   void _saveMeal() {
     if (_formKey.currentState!.validate()) {
-      final name = _nameController.text.trim();
+      final name = _autoCompleteController?.text.trim() ?? '';
+      
       final calories = int.tryParse(_caloriesController.text.trim()) ?? 0;
       final proteins = double.tryParse(_proteinsController.text.trim()) ?? 0.0;
       final fats = double.tryParse(_fatsController.text.trim()) ?? 0.0;
@@ -134,6 +168,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
                 children: [
                   
                   Autocomplete<FoodItemData>(
+                    initialValue: TextEditingValue(text: widget.mealToEdit?.foodName ?? ''),
                     optionsBuilder: (TextEditingValue textEditingValue) {
                       if (textEditingValue.text.isEmpty) {
                         return const Iterable<FoodItemData>.empty();
@@ -145,14 +180,11 @@ class _AddMealScreenState extends State<AddMealScreen> {
                     displayStringForOption: (FoodItemData option) => option.name,
                     onSelected: (FoodItemData selection) {
                       _selectedFoodFromDb = selection;
-                      _nameController.text = selection.name;
                       _calculateMacros(); 
                       FocusScope.of(context).unfocus(); 
                     },
                     fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-                      if (!isEditing && _nameController.text.isEmpty) {
-                        _nameController = textEditingController;
-                      }
+                      _autoCompleteController = textEditingController;
                       
                       return TextFormField(
                         controller: textEditingController,
@@ -170,7 +202,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
                           ),
                         ),
                         onChanged: (val) {
-                          _nameController.text = val;
+                          // Якщо користувач почав міняти текст вручну - відв'язуємо від бази
                           _selectedFoodFromDb = null; 
                         },
                         validator: (value) => (value == null || value.trim().isEmpty) ? 'Будь ласка, введіть назву' : null,

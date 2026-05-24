@@ -14,9 +14,9 @@ class TrackerRepositoryImpl implements TrackerRepository {
     await db.insert('meals', {
       'foodName': meal.foodName,
       'calories': meal.calories,
-      'proteins': meal.proteins, // Додано
-      'fats': meal.fats,         // Додано
-      'carbs': meal.carbs,       // Додано
+      'proteins': meal.proteins, 
+      'fats': meal.fats,         
+      'carbs': meal.carbs,       
       'date': meal.date.toIso8601String(),
       'mealType': meal.mealType.name,
     });
@@ -40,9 +40,9 @@ class TrackerRepositoryImpl implements TrackerRepository {
       id: map['id'] as int,
       foodName: map['foodName'] as String,
       calories: map['calories'] as int,
-      proteins: map['proteins'] as double, // Додано
-      fats: map['fats'] as double,         // Додано
-      carbs: map['carbs'] as double,       // Додано
+      proteins: map['proteins'] as double, 
+      fats: map['fats'] as double,         
+      carbs: map['carbs'] as double,       
       date: DateTime.parse(map['date'] as String),
       mealType: MealType.values.firstWhere((e) => e.name == map['mealType'] as String),
     )).toList();
@@ -62,9 +62,9 @@ class TrackerRepositoryImpl implements TrackerRepository {
       {
         'foodName': meal.foodName,
         'calories': meal.calories,
-        'proteins': meal.proteins, // Додано
-        'fats': meal.fats,         // Додано
-        'carbs': meal.carbs,       // Додано
+        'proteins': meal.proteins, 
+        'fats': meal.fats,         
+        'carbs': meal.carbs,       
         'mealType': meal.mealType.name,
       },
       where: 'id = ?',
@@ -94,5 +94,27 @@ class TrackerRepositoryImpl implements TrackerRepository {
       weight: map['weight'] as double,
       date: DateTime.parse(map['date'] as String),
     )).toList();
+  }
+
+  // --- ДОДАНО РЕАЛІЗАЦІЮ НОВИХ МЕТОДІВ ---
+
+  @override
+  Future<void> updateWeight(WeightRecordModel weight) async {
+    final db = await _dbService.database;
+    await db.update(
+      'weight_records',
+      {
+        'weight': weight.weight,
+        'date': weight.date.toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [weight.id],
+    );
+  }
+
+  @override
+  Future<void> deleteWeight(int id) async {
+    final db = await _dbService.database;
+    await db.delete('weight_records', where: 'id = ?', whereArgs: [id]);
   }
 }

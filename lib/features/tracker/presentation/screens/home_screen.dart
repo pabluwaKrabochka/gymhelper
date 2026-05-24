@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gymhelper/app/utils/custom_snackbar.dart';
+import 'package:gymhelper/app/utils/dialog_utils.dart'; // ПІДКЛЮЧАЄМО НАШ ДІАЛОГ
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:intl/intl.dart';
 import '../cubit/tracker_cubit.dart';
@@ -59,7 +60,6 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 20),
               const Divider(),
 
-              // Плавний перехід між порожнім екраном та списком їжі
               Expanded(
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
@@ -72,7 +72,7 @@ class HomeScreen extends StatelessWidget {
                           child: Text('Сьогодні ви ще нічого не записували.')
                         )
                       : ListView.builder(
-                          key: const ValueKey('list'), // Ключі обов'язкові для AnimatedSwitcher
+                          key: const ValueKey('list'), 
                           itemCount: state.meals.length,
                           itemBuilder: (context, index) {
                             final meal = state.meals[index];
@@ -86,6 +86,15 @@ class HomeScreen extends StatelessWidget {
                                 color: Colors.red.shade400,
                                 child: const Icon(IconsaxPlusLinear.trash, color: Colors.white),
                               ),
+                              // ДОДАНО: Викликаємо вікно підтвердження ПЕРЕД видаленням
+                              confirmDismiss: (direction) async {
+                                return await DialogUtils.showConfirmDialog(
+                                  context,
+                                  title: 'Видалити запис?',
+                                  content: 'Ви впевнені, що хочете видалити "${meal.foodName}"?',
+                                );
+                              },
+                              // Виконається ТІЛЬКИ якщо confirmDismiss повернув true
                               onDismissed: (direction) {
                                 if (meal.id != null) {
                                   context.read<TrackerCubit>().deleteMealRecord(meal.id!);
@@ -102,10 +111,13 @@ class HomeScreen extends StatelessWidget {
                                   child: const Icon(IconsaxPlusLinear.reserve),
                                 ),
                                 title: Text(meal.foodName),
-                                subtitle: Text('${_getMealTypeName(meal.mealType)} • ${meal.proteins} Б ${meal.fats} Ж ${meal.carbs} В'),
+                                subtitle: Text(
+                                  '${_getMealTypeName(meal.mealType)} • ${meal.proteins} Б ${meal.fats} Ж ${meal.carbs} В',
+                                  style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 13),
+                                ),
                                 trailing: Text(
                                   '${meal.calories} ккал',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                                 ),
                                 onTap: () {
                                   Navigator.push(
@@ -145,7 +157,6 @@ class HomeScreen extends StatelessWidget {
               );
             },
           ),
-          // Анімація тексту дати (щоб вона теж м'яко змінювалась)
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
@@ -169,7 +180,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildCalorieProgress(int consumed, int goal, bool isOverLimit, BuildContext context) {
-    final progress = (consumed / goal).clamp(0.0, 1.0);
+    final progress = goal > 0 ? (consumed / goal).clamp(0.0, 1.0) : 0.0;
     final color = isOverLimit ? Colors.red : Theme.of(context).colorScheme.primary;
 
     return Stack(
@@ -178,7 +189,6 @@ class HomeScreen extends StatelessWidget {
         SizedBox(
           width: 150,
           height: 150,
-          // Плавне заповнення кола
           child: TweenAnimationBuilder<double>(
             tween: Tween<double>(begin: 0, end: progress),
             duration: const Duration(milliseconds: 800),
@@ -214,32 +224,27 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildMacroItem(BuildContext context, String title, double consumed, double goal, Color color) {
-    final progress = (consumed / goal).clamp(0.0, 1.0);
-    return Column(
-      children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: 80,
-          // Плавне заповнення лінії
-          child: TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: progress),
-            duration: const Duration(milliseconds: 800),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, _) {
-              return LinearProgressIndicator(
-                value: value,
-                backgroundColor: Colors.grey.shade200,
-                color: color,
-                minHeight: 8,
-                borderRadius: BorderRadius.circular(4),
-              );
-            },
-          ),
+    final progress = goal > 0 ? (consumed / goal).clamp(0.0, 1.0) : 0.0;
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+        child: Column(
+          children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.grey.shade200,
+              color: color,
+              minHeight: 8,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            const SizedBox(height: 8),
+            Text('${consumed.toInt()} / ${goal.toInt()} г', 
+                 style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          ],
         ),
-        const SizedBox(height: 8),
-        Text('${consumed.toInt()} / ${goal.toInt()} г', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-      ],
+      ),
     );
   }
 

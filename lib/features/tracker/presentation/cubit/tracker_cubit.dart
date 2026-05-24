@@ -135,6 +135,28 @@ class TrackerCubit extends Cubit<TrackerState> {
     }
   }
 
+Future<void> deleteWeightRecord(int id) async {
+    try {
+      // Припускаємо, що в тебе є метод deleteWeight у репозиторії
+      await _repository.deleteWeight(id);
+      await loadWeightHistory();
+    } catch (e) {
+      emit(state.copyWith(errorMessage: e.toString()));
+    }
+  }
+
+Future<void> updateWeightRecord(int id, double weight, DateTime date) async {
+    try {
+      final updatedWeight = WeightRecordModel(id: id, weight: weight, date: date);
+      // Припускаємо, що в тебе є метод updateWeight у репозиторії
+      await _repository.updateWeight(updatedWeight); 
+      await loadWeightHistory();
+    } catch (e) {
+      emit(state.copyWith(errorMessage: e.toString()));
+    }
+  }
+
+
   Future<void> addWeightRecord(double weight) async {
     try {
       final newWeight = WeightRecordModel(weight: weight, date: DateTime.now());

@@ -1,5 +1,6 @@
 import 'dart:ui'; 
 import 'package:flutter/material.dart';
+import 'package:gymhelper/features/analytics/ui/analytics_screen.dart';
 import 'package:gymhelper/features/tracker/presentation/screens/profile_screen.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'home_screen.dart';
@@ -18,7 +19,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
-    const Center(child: Text('Екран Аналітики (в розробці)')),
+    const AnalyticsScreen(),
     const ProfileScreen(),
   ];
 
