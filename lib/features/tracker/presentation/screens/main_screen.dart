@@ -1,6 +1,8 @@
 import 'dart:ui'; 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:gymhelper/features/analytics/ui/analytics_screen.dart';
+import 'package:gymhelper/features/minigame/screens/game_screen.dart';
 import 'package:gymhelper/features/tracker/presentation/screens/profile_screen.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'home_screen.dart';
@@ -20,17 +22,16 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const AnalyticsScreen(),
-    const ProfileScreen(),
+    const GameScreen(), // ДОДАЛИ ГРУ СЮДИ (індекс 2)
+    const ProfileScreen(), // ПРОФІЛЬ ТЕПЕР ТУТ (індекс 3)
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      
       extendBody: true, 
       
-      // 1. АНІМАЦІЯ ЗМІНИ ЕКРАНІВ (Плавне розчинення)
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         child: Container(
@@ -47,11 +48,7 @@ class _MainScreenState extends State<MainScreen> {
                   gradient: AppColors.premiumGradient,
                   shape: BoxShape.circle,
                   boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withAlpha(102),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
+                    BoxShadow(color: AppColors.primary.withAlpha(102), blurRadius: 12, offset: const Offset(0, 4)),
                   ],
                 ),
                 child: FloatingActionButton(
@@ -76,11 +73,7 @@ class _MainScreenState extends State<MainScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(30),
             boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withAlpha(38),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
+              BoxShadow(color: AppColors.primary.withAlpha(38), blurRadius: 20, offset: const Offset(0, 10)),
             ],
           ),
           child: ClipRRect(
@@ -93,17 +86,16 @@ class _MainScreenState extends State<MainScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white.withAlpha(191), 
                   borderRadius: BorderRadius.circular(30),
-                  border: Border.all(
-                    color: Colors.white.withAlpha(127), 
-                    width: 1.5,
-                  ),
+                  border: Border.all(color: Colors.white.withAlpha(127), width: 1.5),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildNavItem(0, IconsaxPlusLinear.home, IconsaxPlusBold.home, 'Щоденник'),
-                    _buildNavItem(1, IconsaxPlusLinear.chart, IconsaxPlusBold.chart, 'Аналітика'),
-                    _buildNavItem(2, IconsaxPlusLinear.profile, IconsaxPlusBold.profile, 'Профіль'),
+                    _buildNavItem(0, IconsaxPlusLinear.home, IconsaxPlusBold.home, 'navbar.diary'.tr()),
+                    _buildNavItem(1, IconsaxPlusLinear.chart, IconsaxPlusBold.chart, 'navbar.analytics'.tr()),
+                    // 4 КНОПКА: ГРА
+                    _buildNavItem(2, Icons.sports_esports_outlined, Icons.sports_esports_rounded, 'navbar.game'.tr()),
+                    _buildNavItem(3, IconsaxPlusLinear.profile, IconsaxPlusBold.profile, 'navbar.profile'.tr()),
                   ],
                 ),
               ),
@@ -114,7 +106,6 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  // 2. ІДЕАЛЬНО ПЛАВНА КНОПКА МЕНЮ
   Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
     final isSelected = _currentIndex == index;
 
@@ -127,8 +118,8 @@ class _MainScreenState extends State<MainScreen> {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 350), 
-        curve: Curves.easeOutCubic, // Плавне сповільнення в кінці
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), // Зменшив horizontal padding для 4 кнопок
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary.withAlpha(38) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
@@ -139,27 +130,23 @@ class _MainScreenState extends State<MainScreen> {
             Icon(
               isSelected ? activeIcon : icon,
               color: isSelected ? AppColors.primary : AppColors.textSecondary,
-              size: 26,
+              size: 24, // Трохи зменшив іконку, щоб 4 кнопки красиво влізли
             ),
-            
-            // МАГІЯ ТУТ: Замість Flexible ми обмежуємо ширину.
-            // Коли не вибрано -> ширина 0 (текст ховається).
-            // Коли вибрано -> ширина null (текст займає стільки місця, скільки треба).
             AnimatedSize(
               duration: const Duration(milliseconds: 350),
               curve: Curves.easeOutCubic,
               child: SizedBox(
                 width: isSelected ? null : 0,
                 child: Padding(
-                  padding: EdgeInsets.only(left: isSelected ? 8.0 : 0.0),
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    softWrap: false, // Забороняємо переносити текст, щоб уникнути помилок верстки
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                  padding: EdgeInsets.only(left: isSelected ? 6.0 : 0.0),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: Text(
+                      label,
+                      key: ValueKey<String>(label),
+                      maxLines: 1,
+                      softWrap: false, 
+                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13), // Трохи зменшив шрифт
                     ),
                   ),
                 ),

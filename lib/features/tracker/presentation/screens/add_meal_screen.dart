@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:gymhelper/features/meals/food_database.dart';
+import 'package:gymhelper/core/constants/food_database.dart';
+
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import '../../../../data/models/meal_record_model.dart';
@@ -28,7 +29,6 @@ class _AddMealScreenState extends State<AddMealScreen> {
   late TextEditingController _carbsController;
   late MealType _selectedMealType;
   
-  // Додано: змінна для розуміння, чи їжа знайдена в базі
   FoodItemData? _selectedFoodFromDb; 
 
   bool get isEditing => widget.mealToEdit != null;
@@ -46,16 +46,13 @@ class _AddMealScreenState extends State<AddMealScreen> {
 
     String initialWeight = '';
 
-    // РОЗУМНЕ ВІДНОВЛЕННЯ ВАГИ ТА БАЗИ ДАНИХ
     if (isEditing) {
       try {
-        // Шукаємо страву в базі даних за іменем
         _selectedFoodFromDb = foodDatabase.firstWhere(
-          (food) => food.name.toLowerCase() == widget.mealToEdit!.foodName.toLowerCase()
+          (food) => food.nameUk.toLowerCase() == widget.mealToEdit!.foodName.toLowerCase() || 
+                    food.nameEn.toLowerCase() == widget.mealToEdit!.foodName.toLowerCase()
         );
         
-        // Якщо знайшли, вираховуємо оригінальну вагу через пропорцію: 
-        // (Збережені калорії / Калорії на 100г) * 100
         if (_selectedFoodFromDb!.calories > 0) {
           double grams = (widget.mealToEdit!.calories / _selectedFoodFromDb!.calories) * 100;
           initialWeight = grams.round().toString();
@@ -64,8 +61,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
           initialWeight = grams.round().toString();
         }
       } catch (e) {
-        // Якщо страву не знайдено (користувач ввів вручну), нічого не робимо,
-        // залишаємо поля з калоріями як є.
+        // Страва не з бази (введена вручну)
       }
     }
 
@@ -83,9 +79,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
   }
 
   void _calculateMacros() {
-    // Якщо їжа не з бази - не можемо автоматично рахувати пропорції
     if (_selectedFoodFromDb == null) return;
-    
     if (!mounted) return;
 
     final grams = double.tryParse(_weightGramsController.text.trim()) ?? 0;
@@ -149,10 +143,13 @@ class _AddMealScreenState extends State<AddMealScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ВИПРАВЛЕНО: Прибрали "?? 'uk'", оскільки locale ніколи не буває null
+    final locale = context.watch<TrackerCubit>().state.locale;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(isEditing ? 'Редагувати запис' : 'Додати прийом їжі'),
+        title: Text(isEditing ? (locale == 'en' ? 'Edit Meal' : 'Редагувати запис') : (locale == 'en' ? 'Add Meal' : 'Додати прийом їжі')),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -166,7 +163,6 @@ class _AddMealScreenState extends State<AddMealScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  
                   Autocomplete<FoodItemData>(
                     initialValue: TextEditingValue(text: widget.mealToEdit?.foodName ?? ''),
                     optionsBuilder: (TextEditingValue textEditingValue) {
@@ -174,10 +170,10 @@ class _AddMealScreenState extends State<AddMealScreen> {
                         return const Iterable<FoodItemData>.empty();
                       }
                       return foodDatabase.where((food) => 
-                        food.name.toLowerCase().contains(textEditingValue.text.toLowerCase())
+                        food.getName(locale).toLowerCase().contains(textEditingValue.text.toLowerCase())
                       );
                     },
-                    displayStringForOption: (FoodItemData option) => option.name,
+                    displayStringForOption: (FoodItemData option) => option.getName(locale),
                     onSelected: (FoodItemData selection) {
                       _selectedFoodFromDb = selection;
                       _calculateMacros(); 
@@ -191,8 +187,8 @@ class _AddMealScreenState extends State<AddMealScreen> {
                         focusNode: focusNode,
                         style: const TextStyle(fontWeight: FontWeight.w600),
                         decoration: InputDecoration(
-                          labelText: 'Що ви з\'їли? (Почніть вводити)',
-                          hintText: 'Наприклад: Гречка',
+                          labelText: locale == 'en' ? 'What did you eat?' : 'Що ви з\'їли? (Почніть вводити)',
+                          hintText: locale == 'en' ? 'E.g.: Chicken' : 'Наприклад: Гречка',
                           prefixIcon: const Icon(IconsaxPlusLinear.reserve),
                           filled: true,
                           fillColor: AppColors.surface,
@@ -202,10 +198,9 @@ class _AddMealScreenState extends State<AddMealScreen> {
                           ),
                         ),
                         onChanged: (val) {
-                          // Якщо користувач почав міняти текст вручну - відв'язуємо від бази
                           _selectedFoodFromDb = null; 
                         },
-                        validator: (value) => (value == null || value.trim().isEmpty) ? 'Будь ласка, введіть назву' : null,
+                        validator: (value) => (value == null || value.trim().isEmpty) ? (locale == 'en' ? 'Please enter a name' : 'Будь ласка, введіть назву') : null,
                       );
                     },
                     optionsViewBuilder: (context, onSelected, options) {
@@ -223,8 +218,8 @@ class _AddMealScreenState extends State<AddMealScreen> {
                               itemBuilder: (BuildContext context, int index) {
                                 final option = options.elementAt(index);
                                 return ListTile(
-                                  title: Text(option.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  subtitle: Text('${option.calories} ккал / 100г'),
+                                  title: Text(option.getName(locale), style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  subtitle: Text('${option.calories} ${locale == 'en' ? 'kcal' : 'ккал'} / 100g'),
                                   onTap: () => onSelected(option),
                                 );
                               },
@@ -241,8 +236,8 @@ class _AddMealScreenState extends State<AddMealScreen> {
                     keyboardType: TextInputType.number,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
                     decoration: InputDecoration(
-                      labelText: 'Вага порції (грами)',
-                      hintText: 'Наприклад: 150',
+                      labelText: locale == 'en' ? 'Portion weight (grams)' : 'Вага порції (грами)',
+                      hintText: locale == 'en' ? 'E.g.: 150' : 'Наприклад: 150',
                       prefixIcon: const Icon(IconsaxPlusLinear.weight_1),
                       filled: true,
                       fillColor: AppColors.primary.withAlpha(25), 
@@ -261,7 +256,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
                     controller: _caloriesController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: 'Калорійність (ккал)',
+                      labelText: locale == 'en' ? 'Calories (kcal)' : 'Калорійність (ккал)',
                       prefixIcon: const Icon(IconsaxPlusLinear.flash),
                       filled: true,
                       fillColor: AppColors.surface,
@@ -277,7 +272,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
                           controller: _proteinsController,
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
-                            labelText: 'Білки (г)',
+                            labelText: locale == 'en' ? 'Proteins (g)' : 'Білки (г)',
                             filled: true,
                             fillColor: AppColors.surface,
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
@@ -290,7 +285,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
                           controller: _fatsController,
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
-                            labelText: 'Жири (г)',
+                            labelText: locale == 'en' ? 'Fats (g)' : 'Жири (г)',
                             filled: true,
                             fillColor: AppColors.surface,
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
@@ -303,7 +298,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
                           controller: _carbsController,
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
-                            labelText: 'Вуглев. (г)',
+                            labelText: locale == 'en' ? 'Carbs (g)' : 'Вуглев. (г)',
                             filled: true,
                             fillColor: AppColors.surface,
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
@@ -314,7 +309,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
                   ),
 
                   const SizedBox(height: 24),
-                  const Text('Тип прийому їжі', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  Text(locale == 'en' ? 'Meal Type' : 'Тип прийому їжі', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 12),
                   
                   SingleChildScrollView(
@@ -325,7 +320,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
                         return Padding(
                           padding: const EdgeInsets.only(right: 8.0),
                           child: ChoiceChip(
-                            label: Text(_getMealTypeName(type)),
+                            label: Text(_getMealTypeName(type, locale)),
                             selected: isSelected,
                             onSelected: (selected) {
                               if (selected) setState(() => _selectedMealType = type);
@@ -360,7 +355,12 @@ class _AddMealScreenState extends State<AddMealScreen> {
                         shadowColor: Colors.transparent,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: Text(isEditing ? 'Оновити' : 'Зберегти', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                      child: Text(
+                        isEditing 
+                          ? (locale == 'en' ? 'Update' : 'Оновити') 
+                          : (locale == 'en' ? 'Save' : 'Зберегти'), 
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)
+                      ),
                     ),
                   ),
                 ],
@@ -372,12 +372,21 @@ class _AddMealScreenState extends State<AddMealScreen> {
     );
   }
 
-  String _getMealTypeName(MealType type) {
-    switch (type) {
-      case MealType.breakfast: return 'Сніданок';
-      case MealType.lunch: return 'Обід';
-      case MealType.dinner: return 'Вечеря';
-      case MealType.snack: return 'Перекус';
+  String _getMealTypeName(MealType type, String locale) {
+    if (locale == 'en') {
+      switch (type) {
+        case MealType.breakfast: return 'Breakfast';
+        case MealType.lunch: return 'Lunch';
+        case MealType.dinner: return 'Dinner';
+        case MealType.snack: return 'Snack';
+      }
+    } else {
+      switch (type) {
+        case MealType.breakfast: return 'Сніданок';
+        case MealType.lunch: return 'Обід';
+        case MealType.dinner: return 'Вечеря';
+        case MealType.snack: return 'Перекус';
+      }
     }
   }
 }

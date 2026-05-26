@@ -22,8 +22,10 @@ mixin _$TrackerState {
   List<WeightRecordModel> get weightHistory =>
       throw _privateConstructorUsedError;
   bool get isLoading => throw _privateConstructorUsedError;
-  UserModel? get user =>
-      throw _privateConstructorUsedError; // Зберігаємо тут дані користувача
+  UserModel? get user => throw _privateConstructorUsedError;
+  String get locale => throw _privateConstructorUsedError;
+  int get streak =>
+      throw _privateConstructorUsedError; // ДОДАНО ПОЛЕ ДЛЯ СТРІКУ (за замовчуванням 1)
   String? get errorMessage => throw _privateConstructorUsedError;
 
   /// Create a copy of TrackerState
@@ -46,6 +48,8 @@ abstract class $TrackerStateCopyWith<$Res> {
     List<WeightRecordModel> weightHistory,
     bool isLoading,
     UserModel? user,
+    String locale,
+    int streak,
     String? errorMessage,
   });
 
@@ -72,6 +76,8 @@ class _$TrackerStateCopyWithImpl<$Res, $Val extends TrackerState>
     Object? weightHistory = null,
     Object? isLoading = null,
     Object? user = freezed,
+    Object? locale = null,
+    Object? streak = null,
     Object? errorMessage = freezed,
   }) {
     return _then(
@@ -96,6 +102,14 @@ class _$TrackerStateCopyWithImpl<$Res, $Val extends TrackerState>
                 ? _value.user
                 : user // ignore: cast_nullable_to_non_nullable
                       as UserModel?,
+            locale: null == locale
+                ? _value.locale
+                : locale // ignore: cast_nullable_to_non_nullable
+                      as String,
+            streak: null == streak
+                ? _value.streak
+                : streak // ignore: cast_nullable_to_non_nullable
+                      as int,
             errorMessage: freezed == errorMessage
                 ? _value.errorMessage
                 : errorMessage // ignore: cast_nullable_to_non_nullable
@@ -135,6 +149,8 @@ abstract class _$$TrackerStateImplCopyWith<$Res>
     List<WeightRecordModel> weightHistory,
     bool isLoading,
     UserModel? user,
+    String locale,
+    int streak,
     String? errorMessage,
   });
 
@@ -161,6 +177,8 @@ class __$$TrackerStateImplCopyWithImpl<$Res>
     Object? weightHistory = null,
     Object? isLoading = null,
     Object? user = freezed,
+    Object? locale = null,
+    Object? streak = null,
     Object? errorMessage = freezed,
   }) {
     return _then(
@@ -185,6 +203,14 @@ class __$$TrackerStateImplCopyWithImpl<$Res>
             ? _value.user
             : user // ignore: cast_nullable_to_non_nullable
                   as UserModel?,
+        locale: null == locale
+            ? _value.locale
+            : locale // ignore: cast_nullable_to_non_nullable
+                  as String,
+        streak: null == streak
+            ? _value.streak
+            : streak // ignore: cast_nullable_to_non_nullable
+                  as int,
         errorMessage: freezed == errorMessage
             ? _value.errorMessage
             : errorMessage // ignore: cast_nullable_to_non_nullable
@@ -203,6 +229,8 @@ class _$TrackerStateImpl implements _TrackerState {
     final List<WeightRecordModel> weightHistory = const [],
     this.isLoading = false,
     this.user,
+    this.locale = 'uk',
+    this.streak = 1,
     this.errorMessage,
   }) : _meals = meals,
        _weightHistory = weightHistory;
@@ -232,13 +260,19 @@ class _$TrackerStateImpl implements _TrackerState {
   final bool isLoading;
   @override
   final UserModel? user;
-  // Зберігаємо тут дані користувача
+  @override
+  @JsonKey()
+  final String locale;
+  @override
+  @JsonKey()
+  final int streak;
+  // ДОДАНО ПОЛЕ ДЛЯ СТРІКУ (за замовчуванням 1)
   @override
   final String? errorMessage;
 
   @override
   String toString() {
-    return 'TrackerState(selectedDate: $selectedDate, meals: $meals, weightHistory: $weightHistory, isLoading: $isLoading, user: $user, errorMessage: $errorMessage)';
+    return 'TrackerState(selectedDate: $selectedDate, meals: $meals, weightHistory: $weightHistory, isLoading: $isLoading, user: $user, locale: $locale, streak: $streak, errorMessage: $errorMessage)';
   }
 
   @override
@@ -256,6 +290,8 @@ class _$TrackerStateImpl implements _TrackerState {
             (identical(other.isLoading, isLoading) ||
                 other.isLoading == isLoading) &&
             (identical(other.user, user) || other.user == user) &&
+            (identical(other.locale, locale) || other.locale == locale) &&
+            (identical(other.streak, streak) || other.streak == streak) &&
             (identical(other.errorMessage, errorMessage) ||
                 other.errorMessage == errorMessage));
   }
@@ -268,6 +304,8 @@ class _$TrackerStateImpl implements _TrackerState {
     const DeepCollectionEquality().hash(_weightHistory),
     isLoading,
     user,
+    locale,
+    streak,
     errorMessage,
   );
 
@@ -287,6 +325,8 @@ abstract class _TrackerState implements TrackerState {
     final List<WeightRecordModel> weightHistory,
     final bool isLoading,
     final UserModel? user,
+    final String locale,
+    final int streak,
     final String? errorMessage,
   }) = _$TrackerStateImpl;
 
@@ -299,7 +339,11 @@ abstract class _TrackerState implements TrackerState {
   @override
   bool get isLoading;
   @override
-  UserModel? get user; // Зберігаємо тут дані користувача
+  UserModel? get user;
+  @override
+  String get locale;
+  @override
+  int get streak; // ДОДАНО ПОЛЕ ДЛЯ СТРІКУ (за замовчуванням 1)
   @override
   String? get errorMessage;
 

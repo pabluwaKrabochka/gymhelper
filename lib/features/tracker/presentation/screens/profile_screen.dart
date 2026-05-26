@@ -6,6 +6,7 @@ import 'package:gymhelper/features/tracker/presentation/cubit/tracker_cubit.dart
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart'; 
+import 'package:easy_localization/easy_localization.dart'; // ДОДАНО ІМПОРТ
 import '../../../../data/models/user_model.dart';
 import '../../../../core/constants/color_constants.dart';
 import '../../../../core/constants/tips_database.dart'; 
@@ -48,7 +49,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _changeTip() {
     setState(() {
-      _currentTipIndex = (_currentTipIndex + 1) % healthTips.length;
+      // Використовуємо context.locale.languageCode для доступу до словника порад
+      final tipsList = healthTips[context.locale.languageCode] ?? healthTips['uk']!;
+      _currentTipIndex = (_currentTipIndex + 1) % tipsList.length;
     });
   }
 
@@ -62,7 +65,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1), 
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: 'Відцентрувати фото',
+            toolbarTitle: 'profile.center_photo'.tr(), // ЛОКАЛІЗАЦІЯ
             toolbarColor: AppColors.primary,
             toolbarWidgetColor: Colors.white,
             initAspectRatio: CropAspectRatioPreset.square,
@@ -70,7 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             hideBottomControls: true, 
           ),
           IOSUiSettings(
-            title: 'Відцентрувати фото',
+            title: 'profile.center_photo'.tr(), // ЛОКАЛІЗАЦІЯ
             aspectRatioLockEnabled: true,
             resetButtonHidden: true,
           ),
@@ -100,7 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       context.read<TrackerCubit>().saveUserProfile(user);
       
-      CustomSnackbar.showSuccess(context, 'Профіль оновлено! Норми КБЖВ перераховані.');
+      CustomSnackbar.showSuccess(context, 'profile.profile_updated'.tr()); // ЛОКАЛІЗАЦІЯ
     }
   }
 
@@ -109,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Мій профіль', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('profile.title'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)), // ЛОКАЛІЗАЦІЯ
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -130,12 +133,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: CircleAvatar(
                           radius: 60,
                           backgroundColor: Colors.grey.shade300,
-                          backgroundImage: _avatarPath != null 
-                              ? FileImage(File(_avatarPath!)) 
-                              : null,
-                          child: _avatarPath == null
-                              ? Icon(IconsaxPlusLinear.user, size: 50, color: Colors.grey.shade600)
-                              : null,
+                          backgroundImage: _avatarPath != null ? FileImage(File(_avatarPath!)) : null,
+                          child: _avatarPath == null ? Icon(IconsaxPlusLinear.user, size: 50, color: Colors.grey.shade600) : null,
                         ),
                       ),
                       Positioned(
@@ -145,10 +144,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onTap: _pickAvatar,
                           child: Container(
                             padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              gradient: AppColors.premiumGradient,
-                              shape: BoxShape.circle,
-                            ),
+                            decoration: const BoxDecoration(gradient: AppColors.premiumGradient, shape: BoxShape.circle),
                             child: const Icon(IconsaxPlusLinear.camera, color: Colors.white, size: 18),
                           ),
                         ),
@@ -160,23 +156,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 GestureDetector(
                   onTap: _changeTip,
-                  // ДОДАНО: AnimatedSize плавно змінює висоту всієї картки
                   child: AnimatedSize(
                     duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeInOutCubic, // М'який старт і м'яке гальмування
-                    alignment: Alignment.topCenter, // Картка розширюється вниз
+                    curve: Curves.easeInOutCubic,
+                    alignment: Alignment.topCenter,
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         gradient: AppColors.cardGradient,
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withAlpha(12),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+                        boxShadow: [BoxShadow(color: AppColors.primary.withAlpha(12), blurRadius: 10, offset: const Offset(0, 4))],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,12 +175,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               const Icon(IconsaxPlusBold.lamp_on, color: AppColors.primary),
                               const SizedBox(width: 8),
                               Text(
-                                'Корисна порада',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary.withAlpha(180),
-                                ),
+                                'profile.health_tip'.tr(), // ЛОКАЛІЗАЦІЯ
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary.withAlpha(180)),
                               ),
                               const Spacer(),
                               Icon(IconsaxPlusLinear.refresh, size: 16, color: AppColors.primary.withAlpha(120)),
@@ -204,23 +189,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               return FadeTransition(
                                 opacity: animation,
                                 child: SlideTransition(
-                                  position: Tween<Offset>(
-                                    begin: const Offset(0.0, 0.1), 
-                                    end: Offset.zero,
-                                  ).animate(animation),
+                                  position: Tween<Offset>(begin: const Offset(0.0, 0.1), end: Offset.zero).animate(animation),
                                   child: child,
                                 ),
                               );
                             },
                             child: Text(
-                              healthTips[_currentTipIndex],
-                              key: ValueKey<int>(_currentTipIndex), 
-                              style: const TextStyle(
-                                fontSize: 14, 
-                                height: 1.4, 
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              // ЛОКАЛІЗОВАНА БАЗА ПОРАД
+                              healthTips[context.locale.languageCode]![_currentTipIndex],
+                              key: ValueKey<String>('${context.locale.languageCode}_$_currentTipIndex'), 
+                              style: const TextStyle(fontSize: 14, height: 1.4, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
                             ),
                           ),
                         ],
@@ -235,20 +213,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   maxLength: 30,
                   style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
                   decoration: InputDecoration(
-                    labelText: 'Ім\'я / Нікнейм',
+                    labelText: 'profile.name_hint'.tr(), // ЛОКАЛІЗАЦІЯ
                     prefixIcon: const Icon(IconsaxPlusLinear.user),
                     filled: true,
                     fillColor: AppColors.surface,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                   ),
-                  validator: (v) => v!.isEmpty ? 'Введіть ім\'я' : null,
+                  validator: (v) => v!.isEmpty ? 'profile.enter_name'.tr() : null, // ЛОКАЛІЗАЦІЯ
                 ),
                 const SizedBox(height: 16),
 
@@ -260,16 +231,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         keyboardType: TextInputType.number,
                         style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
                         decoration: InputDecoration(
-                          labelText: 'Вага (кг)',
+                          labelText: 'profile.weight_hint'.tr(), // ЛОКАЛІЗАЦІЯ
                           prefixIcon: const Icon(IconsaxPlusLinear.weight),
                           filled: true,
                           fillColor: AppColors.surface,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                         ),
-                        validator: (v) => (double.tryParse(v ?? '') ?? 0) <= 0 ? 'Помилка' : null,
+                        validator: (v) => (double.tryParse(v ?? '') ?? 0) <= 0 ? 'profile.error_value'.tr() : null, // ЛОКАЛІЗАЦІЯ
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -279,26 +247,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         keyboardType: TextInputType.number,
                         style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
                         decoration: InputDecoration(
-                          labelText: 'Зріст (см)',
+                          labelText: 'profile.height_hint'.tr(), // ЛОКАЛІЗАЦІЯ
                           prefixIcon: const Icon(IconsaxPlusLinear.ruler),
                           filled: true,
                           fillColor: AppColors.surface,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                         ),
-                        validator: (v) => (double.tryParse(v ?? '') ?? 0) <= 0 ? 'Помилка' : null,
+                        validator: (v) => (double.tryParse(v ?? '') ?? 0) <= 0 ? 'profile.error_value'.tr() : null, // ЛОКАЛІЗАЦІЯ
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 28),
 
-                const Text(
-                  'Ваша мета', 
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                ),
+                Text('profile.your_goal'.tr(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)), // ЛОКАЛІЗАЦІЯ
                 const SizedBox(height: 12),
 
                 SegmentedButton<UserGoal>(
@@ -309,18 +271,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     side: BorderSide.none,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: UserGoal.loseWeight, 
-                      label: FittedBox(fit: BoxFit.scaleDown, child: Text('Сушка')),
+                      label: FittedBox(fit: BoxFit.scaleDown, child: Text('profile.cut'.tr())), // ЛОКАЛІЗАЦІЯ
                     ),
                     ButtonSegment(
                       value: UserGoal.maintain, 
-                      label: FittedBox(fit: BoxFit.scaleDown, child: Text('Підтримка')),
+                      label: FittedBox(fit: BoxFit.scaleDown, child: Text('profile.maintain'.tr())), // ЛОКАЛІЗАЦІЯ
                     ),
                     ButtonSegment(
                       value: UserGoal.gainWeight, 
-                      label: FittedBox(fit: BoxFit.scaleDown, child: Text('Маса')),
+                      label: FittedBox(fit: BoxFit.scaleDown, child: Text('profile.bulk'.tr())), // ЛОКАЛІЗАЦІЯ
                     ),
                   ],
                   selected: {_selectedGoal},
@@ -335,13 +297,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   decoration: BoxDecoration(
                     gradient: AppColors.premiumGradient,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withAlpha(76),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    boxShadow: [BoxShadow(color: AppColors.primary.withAlpha(76), blurRadius: 12, offset: const Offset(0, 4))],
                   ),
                   child: ElevatedButton(
                     onPressed: _saveProfile,
@@ -350,12 +306,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       shadowColor: Colors.transparent,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: const Text(
-                      'Зберегти зміни', 
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
+                    child: Text('profile.save_changes'.tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)), // ЛОКАЛІЗАЦІЯ
                   ),
                 ),
+                const SizedBox(height: 3), // Відступ для нижнього меню
               ],
             ),
           ),

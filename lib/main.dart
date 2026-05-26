@@ -1,6 +1,6 @@
+import 'package:easy_localization/easy_localization.dart'; // Додано імпорт
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:gymhelper/features/profile/data/profile_repository.dart';
 import 'package:gymhelper/features/tracker/presentation/screens/profile_setup_screen.dart';
 import 'app/di/service_locator.dart' as di;
@@ -8,12 +8,24 @@ import 'app/theme/app_theme.dart';
 import 'features/tracker/presentation/cubit/tracker_cubit.dart';
 import 'features/tracker/presentation/screens/main_screen.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 1. Ініціалізуємо залежності (GetIt)
   await di.init(); 
+  
+  // 2. Ініціалізуємо пакет локалізації
+  await EasyLocalization.ensureInitialized(); 
 
-  runApp(const MyApp());
+  // 3. Обгортаємо додаток у провайдер мов
+  runApp(
+    EasyLocalization(
+      supportedLocales: const [Locale('uk'), Locale('en')],
+      path: 'assets', // Шлях до папки з JSON файлами
+      fallbackLocale: const Locale('uk'), // Мова за замовчуванням
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -47,16 +59,12 @@ class MyApp extends StatelessWidget {
 
         home: hasProfile ? const MainScreen() : const ProfileSetupScreen(),
         debugShowCheckedModeBanner: false,
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [
-          Locale('uk', 'UA'),
-          Locale('en', 'US'),
-        ],
-        locale: const Locale('uk', 'UA'),
+        
+        // --- ПІДКЛЮЧЕННЯ EASY LOCALIZATION ДО FLUTTER ---
+        // Ці три рядки автоматично кажуть Flutter, яку мову використовувати
+        localizationsDelegates: context.localizationDelegates,
+        supportedLocales: context.supportedLocales,
+        locale: context.locale, 
       ),
     );
   }

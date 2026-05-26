@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gymhelper/features/profile/data/profile_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../data/models/meal_record_model.dart';
 import '../../../../data/models/weight_record_model.dart';
 import '../../../../data/models/user_model.dart';
@@ -20,6 +21,13 @@ class TrackerCubit extends Cubit<TrackerState> {
     loadUserProfile();
     loadDailyData();
     loadWeightHistory();
+    _checkAndUpdateStreak();
+  }
+
+  // --- ЛОКАЛІЗАЦІЯ (МОВА) ---
+  void toggleLanguage() {
+    final newLocale = state.locale == 'uk' ? 'en' : 'uk';
+    emit(state.copyWith(locale: newLocale));
   }
 
   // --- РОБОТА З ПРОФІЛЕМ ---
@@ -33,15 +41,43 @@ class TrackerCubit extends Cubit<TrackerState> {
     emit(state.copyWith(user: user));
   }
 
-// --- Оновлення лише аватарки ---
   void updateAvatar(String newPath) {
     if (state.user != null) {
       final updatedUser = state.user!.copyWith(avatarPath: newPath);
-      saveUserProfile(updatedUser); // Одразу записуємо в SharedPreferences
+      saveUserProfile(updatedUser); 
     }
   }
 
-  // --- ПІДРАХУНОК МАКРОСІВ (КБЖВ) ЗА ДЕНЬ ---
+// --- ЛОГІКА СТРІКУ ---
+  Future<void> _checkAndUpdateStreak() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastOpenedStr = prefs.getString('last_opened_date');
+    int currentStreak = prefs.getInt('current_streak') ?? 1;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day); // Відкидаємо години/хвилини
+
+    if (lastOpenedStr != null) {
+      final lastOpened = DateTime.parse(lastOpenedStr);
+      final lastOpenedDay = DateTime(lastOpened.year, lastOpened.month, lastOpened.day);
+
+      final difference = today.difference(lastOpenedDay).inDays;
+
+      if (difference == 1) {
+        currentStreak++; // Зайшов на наступний день -> стрік росте
+      } else if (difference > 1) {
+        currentStreak = 1; // Пропустив день -> стрік згорів
+      }
+    }
+
+    // Зберігаємо сьогоднішню дату та новий стрік
+    await prefs.setString('last_opened_date', today.toIso8601String());
+    await prefs.setInt('current_streak', currentStreak);
+
+    emit(state.copyWith(streak: currentStreak));
+  }
+
+  // --- ПІДРАХУНОК МАКРОСІВ ---
   int get totalDailyCalories => state.meals.fold(0, (sum, item) => sum + item.calories);
   double get totalDailyProteins => state.meals.fold(0.0, (sum, item) => sum + item.proteins);
   double get totalDailyFats => state.meals.fold(0.0, (sum, item) => sum + item.fats);
@@ -135,9 +171,8 @@ class TrackerCubit extends Cubit<TrackerState> {
     }
   }
 
-Future<void> deleteWeightRecord(int id) async {
+  Future<void> deleteWeightRecord(int id) async {
     try {
-      // Припускаємо, що в тебе є метод deleteWeight у репозиторії
       await _repository.deleteWeight(id);
       await loadWeightHistory();
     } catch (e) {
@@ -145,17 +180,15 @@ Future<void> deleteWeightRecord(int id) async {
     }
   }
 
-Future<void> updateWeightRecord(int id, double weight, DateTime date) async {
+  Future<void> updateWeightRecord(int id, double weight, DateTime date) async {
     try {
       final updatedWeight = WeightRecordModel(id: id, weight: weight, date: date);
-      // Припускаємо, що в тебе є метод updateWeight у репозиторії
       await _repository.updateWeight(updatedWeight); 
       await loadWeightHistory();
     } catch (e) {
       emit(state.copyWith(errorMessage: e.toString()));
     }
   }
-
 
   Future<void> addWeightRecord(double weight) async {
     try {
