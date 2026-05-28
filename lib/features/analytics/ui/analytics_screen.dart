@@ -21,12 +21,26 @@ class AnalyticsScreen extends StatefulWidget {
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
   int _selectedTab = 0;
 
+  // ДОДАНО: Перевірка на планшет (ширина більше 600 пікселів)
+  bool isTablet(BuildContext context) => MediaQuery.of(context).size.width >= 600;
+
   @override
   Widget build(BuildContext context) {
+    // Отримуємо розміри екрану для відсоткових відступів
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final tablet = isTablet(context);
+
+    // Відсоткові відступи по боках: 6% для телефону, 10% для планшету
+    final horizontalPadding = tablet ? screenWidth * 0.1 : screenWidth * 0.06;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('analytics.title'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          'analytics.title'.tr(), 
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: tablet ? 24 : 20)
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -34,9 +48,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 10),
-            _buildCustomTabBar(),
-            const SizedBox(height: 20),
+            SizedBox(height: screenHeight * 0.01),
+            _buildCustomTabBar(horizontalPadding, tablet),
+            SizedBox(height: screenHeight * 0.02),
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 400),
@@ -51,7 +65,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ),
                   );
                 },
-                child: _selectedTab == 0 ? _buildNutritionAnalytics(context) : _buildWeightAnalytics(context),
+                child: _selectedTab == 0 
+                    ? _buildNutritionAnalytics(context, horizontalPadding, tablet) 
+                    : _buildWeightAnalytics(context, horizontalPadding, tablet),
               ),
             ),
           ],
@@ -60,14 +76,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildCustomTabBar() {
+  Widget _buildCustomTabBar(double hPadding, bool tablet) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      padding: EdgeInsets.symmetric(horizontal: hPadding),
       child: Container(
-        height: 50,
+        height: tablet ? 60 : 50, // Більша висота на планшеті
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(25),
+          borderRadius: BorderRadius.circular(30),
           boxShadow: [BoxShadow(color: AppColors.textSecondary.withAlpha(20), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: Stack(
@@ -82,7 +98,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   margin: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(30),
                     boxShadow: [BoxShadow(color: AppColors.primary.withAlpha(76), blurRadius: 8, offset: const Offset(0, 2))],
                   ),
                 ),
@@ -97,7 +113,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     child: Center(
                       child: Text(
                         'analytics.nutrition_tab'.tr(),
-                        style: TextStyle(fontWeight: FontWeight.bold, color: _selectedTab == 0 ? Colors.white : AppColors.textSecondary),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold, 
+                          fontSize: tablet ? 18 : 14,
+                          color: _selectedTab == 0 ? Colors.white : AppColors.textSecondary
+                        ),
                       ),
                     ),
                   ),
@@ -109,7 +129,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     child: Center(
                       child: Text(
                         'analytics.weight_tab'.tr(),
-                        style: TextStyle(fontWeight: FontWeight.bold, color: _selectedTab == 1 ? Colors.white : AppColors.textSecondary),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold, 
+                          fontSize: tablet ? 18 : 14,
+                          color: _selectedTab == 1 ? Colors.white : AppColors.textSecondary
+                        ),
                       ),
                     ),
                   ),
@@ -122,7 +146,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildNutritionAnalytics(BuildContext context) {
+  Widget _buildNutritionAnalytics(BuildContext context, double hPadding, bool tablet) {
     return BlocBuilder<TrackerCubit, TrackerState>(
       key: const ValueKey(0),
       builder: (context, state) {
@@ -134,18 +158,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         int breakfastCals = 0, lunchCals = 0, dinnerCals = 0, snackCals = 0;
         
         for (var m in state.meals) {
-          if (m.mealType == MealType.breakfast) {
-            breakfastCals += m.calories;
-          }
-          if (m.mealType == MealType.lunch) {
-            lunchCals += m.calories;
-          }
-          if (m.mealType == MealType.dinner) {
-            dinnerCals += m.calories;
-          }
-          if (m.mealType == MealType.snack) {
-            snackCals += m.calories;
-          }
+          if (m.mealType == MealType.breakfast) breakfastCals += m.calories;
+          if (m.mealType == MealType.lunch) lunchCals += m.calories;
+          if (m.mealType == MealType.dinner) dinnerCals += m.calories;
+          if (m.mealType == MealType.snack) snackCals += m.calories;
         }
 
         final goalPro = state.user?.dailyProteins ?? 150;
@@ -153,38 +169,59 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         final goalCarb = state.user?.dailyCarbs ?? 250;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
+          padding: EdgeInsets.symmetric(horizontal: hPadding, vertical: 10.0),
           physics: const BouncingScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('analytics.macros_distribution'.tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-              const SizedBox(height: 16),
-              _buildMacroCard('analytics.proteins'.tr(), cubit.totalDailyProteins, goalPro.toDouble(), Colors.blue, 'analytics.proteins_hint'.tr()),
-              const SizedBox(height: 12),
-              _buildMacroCard('analytics.fats'.tr(), cubit.totalDailyFats, goalFat.toDouble(), Colors.orange, 'analytics.fats_hint'.tr()),
-              const SizedBox(height: 12),
-              _buildMacroCard('analytics.carbs'.tr(), cubit.totalDailyCarbs, goalCarb.toDouble(), Colors.green, 'analytics.carbs_hint'.tr()),
+              Text('analytics.macros_distribution'.tr(), style: TextStyle(fontSize: tablet ? 22 : 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+              SizedBox(height: tablet ? 24 : 16),
               
-              const SizedBox(height: 32),
-              Text('analytics.calories_by_meal'.tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-              const SizedBox(height: 16),
+              // Для планшету картки макросів можна поставити в ряд, але залишаємо в стовпець, щоб не ламати дизайн. Просто робимо їх вищими.
+              _buildMacroCard('analytics.proteins'.tr(), cubit.totalDailyProteins, goalPro.toDouble(), Colors.blue, 'analytics.proteins_hint'.tr(), tablet),
+              SizedBox(height: tablet ? 16 : 12),
+              _buildMacroCard('analytics.fats'.tr(), cubit.totalDailyFats, goalFat.toDouble(), Colors.orange, 'analytics.fats_hint'.tr(), tablet),
+              SizedBox(height: tablet ? 16 : 12),
+              _buildMacroCard('analytics.carbs'.tr(), cubit.totalDailyCarbs, goalCarb.toDouble(), Colors.green, 'analytics.carbs_hint'.tr(), tablet),
+              
+              SizedBox(height: tablet ? 48 : 32),
+              Text('analytics.calories_by_meal'.tr(), style: TextStyle(fontSize: tablet ? 22 : 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+              SizedBox(height: tablet ? 24 : 16),
 
-              Row(
-                children: [
-                  Expanded(child: _buildMealTypeCard('meal_types.breakfast'.tr(), breakfastCals, cubit.totalDailyCalories, IconsaxPlusLinear.sun_1)),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildMealTypeCard('meal_types.lunch'.tr(), lunchCals, cubit.totalDailyCalories, IconsaxPlusLinear.clock_1)),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(child: _buildMealTypeCard('meal_types.dinner'.tr(), dinnerCals, cubit.totalDailyCalories, IconsaxPlusLinear.moon)),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildMealTypeCard('meal_types.snack'.tr(), snackCals, cubit.totalDailyCalories, Icons.cookie_outlined)),
-                ],
-              ),
+              // АДАПТАЦІЯ ПІД ПЛАНШЕТ: 1 ряд з 4 елементів, або 2 ряди по 2 для телефону
+              if (tablet) 
+                Row(
+                  children: [
+                    Expanded(child: _buildMealTypeCard('meal_types.breakfast'.tr(), breakfastCals, cubit.totalDailyCalories, IconsaxPlusLinear.sun_1, tablet)),
+                    const SizedBox(width: 16),
+                    Expanded(child: _buildMealTypeCard('meal_types.lunch'.tr(), lunchCals, cubit.totalDailyCalories, IconsaxPlusLinear.clock_1, tablet)),
+                    const SizedBox(width: 16),
+                    Expanded(child: _buildMealTypeCard('meal_types.dinner'.tr(), dinnerCals, cubit.totalDailyCalories, IconsaxPlusLinear.moon, tablet)),
+                    const SizedBox(width: 16),
+                    Expanded(child: _buildMealTypeCard('meal_types.snack'.tr(), snackCals, cubit.totalDailyCalories, Icons.cookie_outlined, tablet)),
+                  ],
+                )
+              else 
+                Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: _buildMealTypeCard('meal_types.breakfast'.tr(), breakfastCals, cubit.totalDailyCalories, IconsaxPlusLinear.sun_1, tablet)),
+                        const SizedBox(width: 12),
+                        Expanded(child: _buildMealTypeCard('meal_types.lunch'.tr(), lunchCals, cubit.totalDailyCalories, IconsaxPlusLinear.clock_1, tablet)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(child: _buildMealTypeCard('meal_types.dinner'.tr(), dinnerCals, cubit.totalDailyCalories, IconsaxPlusLinear.moon, tablet)),
+                        const SizedBox(width: 12),
+                        Expanded(child: _buildMealTypeCard('meal_types.snack'.tr(), snackCals, cubit.totalDailyCalories, Icons.cookie_outlined, tablet)),
+                      ],
+                    ),
+                  ],
+                ),
+                
               const SizedBox(height: 90), 
             ],
           ),
@@ -193,10 +230,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildMacroCard(String title, double consumed, double goal, Color color, String hint) {
+  Widget _buildMacroCard(String title, double consumed, double goal, Color color, String hint, bool tablet) {
     final progress = goal > 0 ? (consumed / goal).clamp(0.0, 1.0) : 0.0;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(tablet ? 24 : 16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -208,27 +245,26 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              // ВИПРАВЛЕНО: Замінили хардкод "г" на 'units.g'.tr()
-              Text('${consumed.toInt()} / ${goal.toInt()} ${'units.g'.tr()}', style: TextStyle(fontWeight: FontWeight.w600, color: color)),
+              Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: tablet ? 18 : 16)),
+              Text('${consumed.toInt()} / ${goal.toInt()} ${'units.g'.tr()}', style: TextStyle(fontWeight: FontWeight.w600, color: color, fontSize: tablet ? 18 : 16)),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: tablet ? 16 : 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(value: progress, minHeight: 10, backgroundColor: Colors.grey.shade200, valueColor: AlwaysStoppedAnimation<Color>(color)),
+            child: LinearProgressIndicator(value: progress, minHeight: tablet ? 14 : 10, backgroundColor: Colors.grey.shade200, valueColor: AlwaysStoppedAnimation<Color>(color)),
           ),
-          const SizedBox(height: 8),
-          Text(hint, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          SizedBox(height: tablet ? 12 : 8),
+          Text(hint, style: TextStyle(fontSize: tablet ? 14 : 12, color: AppColors.textSecondary)),
         ],
       ),
     );
   }
 
-  Widget _buildMealTypeCard(String title, int calories, int totalCalories, IconData icon) {
+  Widget _buildMealTypeCard(String title, int calories, int totalCalories, IconData icon, bool tablet) {
     final percent = totalCalories > 0 ? ((calories / totalCalories) * 100).toInt() : 0;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(tablet ? 20 : 16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -237,19 +273,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.primary, size: 24),
-          const SizedBox(height: 12),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+          Icon(icon, color: AppColors.primary, size: tablet ? 32 : 24),
+          SizedBox(height: tablet ? 16 : 12),
+          Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textSecondary, fontSize: tablet ? 16 : 14)),
           const SizedBox(height: 4),
-          Text('$calories ${'units.kcal'.tr()}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.textPrimary)),
+          Text('$calories ${'units.kcal'.tr()}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: tablet ? 24 : 18, color: AppColors.textPrimary)),
           const SizedBox(height: 4),
-          Text('$percent ${'analytics.percent_of_daily'.tr()}', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+          Text('$percent ${'analytics.percent_of_daily'.tr()}', style: TextStyle(fontSize: tablet ? 14 : 11, color: AppColors.textSecondary)),
         ],
       ),
     );
   }
 
-  Widget _buildWeightAnalytics(BuildContext context) {
+  Widget _buildWeightAnalytics(BuildContext context, double hPadding, bool tablet) {
     return BlocBuilder<TrackerCubit, TrackerState>(
       key: const ValueKey(1),
       builder: (context, state) {
@@ -258,40 +294,40 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              padding: EdgeInsets.symmetric(horizontal: hPadding),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(tablet ? 30 : 20),
                 decoration: BoxDecoration(
                   gradient: AppColors.premiumGradient,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(tablet ? 30 : 20),
                   boxShadow: [BoxShadow(color: AppColors.primary.withAlpha(76), blurRadius: 15, offset: const Offset(0, 8))],
                 ),
                 child: Column(
                   children: [
-                    Text('analytics.current_weight'.tr(), style: const TextStyle(color: Colors.white70, fontSize: 14)),
-                    const SizedBox(height: 8),
-                    // ВИПРАВЛЕНО: Замінили хардкод "кг" на 'units.kg'.tr()
+                    Text('analytics.current_weight'.tr(), style: TextStyle(color: Colors.white70, fontSize: tablet ? 18 : 14)),
+                    SizedBox(height: tablet ? 12 : 8),
                     Text(
                       history.isNotEmpty ? '${history.first.weight} ${'units.kg'.tr()}' : '-- ${'units.kg'.tr()}', 
-                      style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)
+                      style: TextStyle(color: Colors.white, fontSize: tablet ? 56 : 36, fontWeight: FontWeight.bold)
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: tablet ? 24 : 16),
                     ElevatedButton.icon(
                       onPressed: () => _showWeightDialog(context),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: EdgeInsets.symmetric(horizontal: tablet ? 30 : 20, vertical: tablet ? 16 : 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      icon: const Icon(IconsaxPlusLinear.add),
-                      label: Text('analytics.add_weighing'.tr()),
+                      icon: Icon(IconsaxPlusLinear.add, size: tablet ? 24 : 20),
+                      label: Text('analytics.add_weighing'.tr(), style: TextStyle(fontSize: tablet ? 18 : 16, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: tablet ? 32 : 24),
             
             Expanded(
               child: history.isEmpty
@@ -300,16 +336,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Lottie.asset('assets/scale.json', width: 160, height: 160, repeat: false),
+                        Lottie.asset(
+                          'assets/scale.json', 
+                          width: MediaQuery.of(context).size.width * (tablet ? 0.3 : 0.45), 
+                          repeat: false
+                        ),
                         const SizedBox(height: 16),
-                        Text('analytics.empty_weight_history'.tr(), style: const TextStyle(color: AppColors.textSecondary, fontSize: 16, fontWeight: FontWeight.w500)),
+                        Text('analytics.empty_weight_history'.tr(), style: TextStyle(color: AppColors.textSecondary, fontSize: tablet ? 20 : 16, fontWeight: FontWeight.w500)),
                         const SizedBox(height: 90), 
                       ],
                     ),
                   )
                 : ListView.builder(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.only(left: 24, right: 24, bottom: 90), 
+                    padding: EdgeInsets.only(left: hPadding, right: hPadding, bottom: 90), 
                     itemCount: history.length,
                     itemBuilder: (context, index) {
                       final record = history[index];
@@ -346,7 +386,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           behavior: HitTestBehavior.opaque,
                           child: Container(
                             margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(16),
+                            padding: EdgeInsets.all(tablet ? 24 : 16),
                             decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -354,22 +394,25 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // ВИПРАВЛЕНО: Замінили хардкод "кг" на 'units.kg'.tr()
-                                    Text('${record.weight} ${'units.kg'.tr()}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                                    Text('${record.weight} ${'units.kg'.tr()}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: tablet ? 22 : 18)),
                                     const SizedBox(height: 4),
-                                    Text(formatter.format(record.date), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                                    Text(formatter.format(record.date), style: TextStyle(color: AppColors.textSecondary, fontSize: tablet ? 14 : 12)),
                                   ],
                                 ),
                                 if (index < history.length - 1)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: EdgeInsets.symmetric(horizontal: tablet ? 12 : 8, vertical: tablet ? 8 : 4),
                                     decoration: BoxDecoration(
                                       color: diff > 0 ? Colors.red.withAlpha(30) : (diff < 0 ? Colors.green.withAlpha(30) : Colors.grey.withAlpha(30)),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
                                       diff > 0 ? '+${diff.toStringAsFixed(1)}' : diff.toStringAsFixed(1),
-                                      style: TextStyle(color: diff > 0 ? Colors.red : (diff < 0 ? Colors.green : Colors.grey), fontWeight: FontWeight.bold),
+                                      style: TextStyle(
+                                        color: diff > 0 ? Colors.red : (diff < 0 ? Colors.green : Colors.grey), 
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: tablet ? 16 : 14
+                                      ),
                                     ),
                                   ),
                               ],

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:easy_localization/easy_localization.dart'; 
 import 'package:gymhelper/core/constants/food_database.dart';
-
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import '../../../../data/models/meal_record_model.dart';
@@ -32,6 +32,9 @@ class _AddMealScreenState extends State<AddMealScreen> {
   FoodItemData? _selectedFoodFromDb; 
 
   bool get isEditing => widget.mealToEdit != null;
+
+  // Допоміжна функція для визначення розміру екрану
+  bool isTablet(BuildContext context) => MediaQuery.of(context).size.width >= 600;
 
   @override
   void initState() {
@@ -143,23 +146,33 @@ class _AddMealScreenState extends State<AddMealScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ВИПРАВЛЕНО: Прибрали "?? 'uk'", оскільки locale ніколи не буває null
-    final locale = context.watch<TrackerCubit>().state.locale;
+    final langCode = context.locale.languageCode;
+    final tablet = isTablet(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    // Робимо красивий відступ для планшетів (щоб поля не були на весь екран)
+    final horizontalPadding = tablet ? screenWidth * 0.15 : 20.0;
+    // Відступи всередині полів вводу (для зручності натискання)
+    final contentPadding = EdgeInsets.symmetric(vertical: tablet ? 20 : 16, horizontal: 16);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(isEditing ? (locale == 'en' ? 'Edit Meal' : 'Редагувати запис') : (locale == 'en' ? 'Add Meal' : 'Додати прийом їжі')),
+        title: Text(
+          isEditing ? 'add_meal.edit_title'.tr() : 'add_meal.add_title'.tr(),
+          style: TextStyle(fontSize: tablet ? 24 : 20, fontWeight: FontWeight.bold)
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: tablet ? 30.0 : 20.0),
           child: Form(
             key: _formKey,
             child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -170,10 +183,10 @@ class _AddMealScreenState extends State<AddMealScreen> {
                         return const Iterable<FoodItemData>.empty();
                       }
                       return foodDatabase.where((food) => 
-                        food.getName(locale).toLowerCase().contains(textEditingValue.text.toLowerCase())
+                        food.getName(langCode).toLowerCase().contains(textEditingValue.text.toLowerCase())
                       );
                     },
-                    displayStringForOption: (FoodItemData option) => option.getName(locale),
+                    displayStringForOption: (FoodItemData option) => option.getName(langCode),
                     onSelected: (FoodItemData selection) {
                       _selectedFoodFromDb = selection;
                       _calculateMacros(); 
@@ -185,13 +198,15 @@ class _AddMealScreenState extends State<AddMealScreen> {
                       return TextFormField(
                         controller: textEditingController,
                         focusNode: focusNode,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: tablet ? 18 : 16),
                         decoration: InputDecoration(
-                          labelText: locale == 'en' ? 'What did you eat?' : 'Що ви з\'їли? (Почніть вводити)',
-                          hintText: locale == 'en' ? 'E.g.: Chicken' : 'Наприклад: Гречка',
-                          prefixIcon: const Icon(IconsaxPlusLinear.reserve),
+                          labelText: 'add_meal.what_did_you_eat'.tr(),
+                          labelStyle: TextStyle(fontSize: tablet ? 18 : 16),
+                          hintText: 'add_meal.example_food'.tr(),
+                          prefixIcon: Icon(IconsaxPlusLinear.reserve, size: tablet ? 28 : 24),
                           filled: true,
                           fillColor: AppColors.surface,
+                          contentPadding: contentPadding,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide.none,
@@ -200,7 +215,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
                         onChanged: (val) {
                           _selectedFoodFromDb = null; 
                         },
-                        validator: (value) => (value == null || value.trim().isEmpty) ? (locale == 'en' ? 'Please enter a name' : 'Будь ласка, введіть назву') : null,
+                        validator: (value) => (value == null || value.trim().isEmpty) ? 'add_meal.please_enter_name'.tr() : null,
                       );
                     },
                     optionsViewBuilder: (context, onSelected, options) {
@@ -210,16 +225,19 @@ class _AddMealScreenState extends State<AddMealScreen> {
                           elevation: 4.0,
                           borderRadius: BorderRadius.circular(16),
                           child: SizedBox(
-                            width: MediaQuery.of(context).size.width - 40,
-                            height: 200,
+                            // Адаптивна ширина підказок
+                            width: screenWidth - (horizontalPadding * 2),
+                            height: tablet ? 300 : 200,
                             child: ListView.builder(
                               padding: const EdgeInsets.all(8.0),
+                              physics: const BouncingScrollPhysics(),
                               itemCount: options.length,
                               itemBuilder: (BuildContext context, int index) {
                                 final option = options.elementAt(index);
                                 return ListTile(
-                                  title: Text(option.getName(locale), style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  subtitle: Text('${option.calories} ${locale == 'en' ? 'kcal' : 'ккал'} / 100g'),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: tablet ? 24 : 16, vertical: tablet ? 8 : 4),
+                                  title: Text(option.getName(langCode), style: TextStyle(fontWeight: FontWeight.bold, fontSize: tablet ? 18 : 16)),
+                                  subtitle: Text('${option.calories} ${'add_meal.kcal_per_100g'.tr()}', style: TextStyle(fontSize: tablet ? 16 : 14)),
                                   onTap: () => onSelected(option),
                                 );
                               },
@@ -229,18 +247,20 @@ class _AddMealScreenState extends State<AddMealScreen> {
                       );
                     },
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: tablet ? 24 : 16),
 
                   TextFormField(
                     controller: _weightGramsController,
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: tablet ? 22 : 18, color: AppColors.primary),
                     decoration: InputDecoration(
-                      labelText: locale == 'en' ? 'Portion weight (grams)' : 'Вага порції (грами)',
-                      hintText: locale == 'en' ? 'E.g.: 150' : 'Наприклад: 150',
-                      prefixIcon: const Icon(IconsaxPlusLinear.weight_1),
+                      labelText: 'add_meal.portion_weight'.tr(),
+                      labelStyle: TextStyle(fontSize: tablet ? 18 : 16),
+                      hintText: '150',
+                      prefixIcon: Icon(IconsaxPlusLinear.weight_1, size: tablet ? 28 : 24),
                       filled: true,
                       fillColor: AppColors.primary.withAlpha(25), 
+                      contentPadding: contentPadding,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide.none,
@@ -248,22 +268,25 @@ class _AddMealScreenState extends State<AddMealScreen> {
                     ),
                     onChanged: (val) => _calculateMacros(), 
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: tablet ? 32 : 24),
                   const Divider(),
-                  const SizedBox(height: 16),
+                  SizedBox(height: tablet ? 24 : 16),
 
                   TextFormField(
                     controller: _caloriesController,
                     keyboardType: TextInputType.number,
+                    style: TextStyle(fontSize: tablet ? 18 : 16),
                     decoration: InputDecoration(
-                      labelText: locale == 'en' ? 'Calories (kcal)' : 'Калорійність (ккал)',
-                      prefixIcon: const Icon(IconsaxPlusLinear.flash),
+                      labelText: 'add_meal.calories'.tr(),
+                      labelStyle: TextStyle(fontSize: tablet ? 18 : 16),
+                      prefixIcon: Icon(IconsaxPlusLinear.flash, size: tablet ? 28 : 24),
                       filled: true,
                       fillColor: AppColors.surface,
+                      contentPadding: contentPadding,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: tablet ? 24 : 16),
 
                   Row(
                     children: [
@@ -271,36 +294,45 @@ class _AddMealScreenState extends State<AddMealScreen> {
                         child: TextFormField(
                           controller: _proteinsController,
                           keyboardType: TextInputType.number,
+                          style: TextStyle(fontSize: tablet ? 18 : 16),
                           decoration: InputDecoration(
-                            labelText: locale == 'en' ? 'Proteins (g)' : 'Білки (г)',
+                            labelText: 'add_meal.proteins'.tr(),
+                            labelStyle: TextStyle(fontSize: tablet ? 16 : 14),
                             filled: true,
                             fillColor: AppColors.surface,
+                            contentPadding: contentPadding,
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: tablet ? 16 : 10),
                       Expanded(
                         child: TextFormField(
                           controller: _fatsController,
                           keyboardType: TextInputType.number,
+                          style: TextStyle(fontSize: tablet ? 18 : 16),
                           decoration: InputDecoration(
-                            labelText: locale == 'en' ? 'Fats (g)' : 'Жири (г)',
+                            labelText: 'add_meal.fats'.tr(),
+                            labelStyle: TextStyle(fontSize: tablet ? 16 : 14),
                             filled: true,
                             fillColor: AppColors.surface,
+                            contentPadding: contentPadding,
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: tablet ? 16 : 10),
                       Expanded(
                         child: TextFormField(
                           controller: _carbsController,
                           keyboardType: TextInputType.number,
+                          style: TextStyle(fontSize: tablet ? 18 : 16),
                           decoration: InputDecoration(
-                            labelText: locale == 'en' ? 'Carbs (g)' : 'Вуглев. (г)',
+                            labelText: 'add_meal.carbs'.tr(),
+                            labelStyle: TextStyle(fontSize: tablet ? 16 : 14),
                             filled: true,
                             fillColor: AppColors.surface,
+                            contentPadding: contentPadding,
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                           ),
                         ),
@@ -308,20 +340,22 @@ class _AddMealScreenState extends State<AddMealScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 24),
-                  Text(locale == 'en' ? 'Meal Type' : 'Тип прийому їжі', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 12),
+                  SizedBox(height: tablet ? 32 : 24),
+                  Text('add_meal.meal_type'.tr(), style: TextStyle(fontSize: tablet ? 20 : 16, fontWeight: FontWeight.w600)),
+                  SizedBox(height: tablet ? 16 : 12),
                   
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
                     child: Row(
                       children: MealType.values.map((type) {
                         final isSelected = _selectedMealType == type;
                         return Padding(
                           padding: const EdgeInsets.only(right: 8.0),
                           child: ChoiceChip(
-                            label: Text(_getMealTypeName(type, locale)),
+                            label: Text(_getMealTypeName(type)),
                             selected: isSelected,
+                            padding: EdgeInsets.symmetric(horizontal: tablet ? 16 : 8, vertical: tablet ? 12 : 8),
                             onSelected: (selected) {
                               if (selected) setState(() => _selectedMealType = type);
                             },
@@ -329,6 +363,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
                             labelStyle: TextStyle(
                               color: isSelected ? Colors.white : AppColors.textPrimary,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontSize: tablet ? 18 : 14,
                             ),
                           ),
                         );
@@ -336,11 +371,11 @@ class _AddMealScreenState extends State<AddMealScreen> {
                     ),
                   ),
                   
-                  const SizedBox(height: 40),
+                  SizedBox(height: tablet ? 60 : 40),
                   
                   Container(
                     width: double.infinity,
-                    height: 56,
+                    height: tablet ? 65 : 56,
                     decoration: BoxDecoration(
                       gradient: AppColors.premiumGradient,
                       borderRadius: BorderRadius.circular(16),
@@ -356,10 +391,8 @@ class _AddMealScreenState extends State<AddMealScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
                       child: Text(
-                        isEditing 
-                          ? (locale == 'en' ? 'Update' : 'Оновити') 
-                          : (locale == 'en' ? 'Save' : 'Зберегти'), 
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)
+                        isEditing ? 'add_meal.update'.tr() : 'add_meal.save'.tr(), 
+                        style: TextStyle(fontSize: tablet ? 22 : 18, fontWeight: FontWeight.bold, color: Colors.white)
                       ),
                     ),
                   ),
@@ -372,21 +405,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
     );
   }
 
-  String _getMealTypeName(MealType type, String locale) {
-    if (locale == 'en') {
-      switch (type) {
-        case MealType.breakfast: return 'Breakfast';
-        case MealType.lunch: return 'Lunch';
-        case MealType.dinner: return 'Dinner';
-        case MealType.snack: return 'Snack';
-      }
-    } else {
-      switch (type) {
-        case MealType.breakfast: return 'Сніданок';
-        case MealType.lunch: return 'Обід';
-        case MealType.dinner: return 'Вечеря';
-        case MealType.snack: return 'Перекус';
-      }
-    }
+  String _getMealTypeName(MealType type) {
+    return 'meal_types.${type.name}'.tr();
   }
 }

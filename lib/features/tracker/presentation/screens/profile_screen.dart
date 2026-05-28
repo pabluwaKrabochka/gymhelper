@@ -6,7 +6,7 @@ import 'package:gymhelper/features/tracker/presentation/cubit/tracker_cubit.dart
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart'; 
-import 'package:easy_localization/easy_localization.dart'; // ДОДАНО ІМПОРТ
+import 'package:easy_localization/easy_localization.dart'; 
 import '../../../../data/models/user_model.dart';
 import '../../../../core/constants/color_constants.dart';
 import '../../../../core/constants/tips_database.dart'; 
@@ -20,6 +20,9 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+  
+  UserModel? _originalUser;
+
   late TextEditingController _nameController;
   late TextEditingController _weightController;
   late TextEditingController _heightController;
@@ -28,28 +31,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   int _currentTipIndex = 0; 
 
+  // Допоміжна функція для визначення розміру екрану
+  bool isTablet(BuildContext context) => MediaQuery.of(context).size.width >= 600;
+
   @override
   void initState() {
     super.initState();
-    final user = context.read<TrackerCubit>().state.user;
-    _nameController = TextEditingController(text: user?.name ?? '');
-    _weightController = TextEditingController(text: user?.weight.toString() ?? '');
-    _heightController = TextEditingController(text: user?.height.toString() ?? '');
-    _selectedGoal = user?.goal ?? UserGoal.maintain;
-    _avatarPath = user?.avatarPath;
+    _originalUser = context.read<TrackerCubit>().state.user;
+    
+    _nameController = TextEditingController(text: _originalUser?.name ?? '');
+    _weightController = TextEditingController(text: _originalUser?.weight.toString() ?? '');
+    _heightController = TextEditingController(text: _originalUser?.height.toString() ?? '');
+    _selectedGoal = _originalUser?.goal ?? UserGoal.maintain;
+    _avatarPath = _originalUser?.avatarPath;
+
+    _nameController.addListener(_onFieldChanged);
+    _weightController.addListener(_onFieldChanged);
+    _heightController.addListener(_onFieldChanged);
   }
 
   @override
   void dispose() {
+    _nameController.removeListener(_onFieldChanged);
+    _weightController.removeListener(_onFieldChanged);
+    _heightController.removeListener(_onFieldChanged);
+    
     _nameController.dispose();
     _weightController.dispose();
     _heightController.dispose();
     super.dispose();
   }
 
+  void _onFieldChanged() {
+    setState(() {});
+  }
+
+  bool get _hasChanges {
+    if (_originalUser == null) return true;
+
+    final currentName = _nameController.text.trim();
+    final currentWeight = double.tryParse(_weightController.text.trim()) ?? 0.0;
+    final currentHeight = double.tryParse(_heightController.text.trim()) ?? 0.0;
+
+    return currentName != _originalUser!.name ||
+           currentWeight != _originalUser!.weight ||
+           currentHeight != _originalUser!.height ||
+           _selectedGoal != _originalUser!.goal ||
+           _avatarPath != _originalUser!.avatarPath;
+  }
+
   void _changeTip() {
     setState(() {
-      // Використовуємо context.locale.languageCode для доступу до словника порад
       final tipsList = healthTips[context.locale.languageCode] ?? healthTips['uk']!;
       _currentTipIndex = (_currentTipIndex + 1) % tipsList.length;
     });
@@ -65,7 +97,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1), 
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: 'profile.center_photo'.tr(), // ЛОКАЛІЗАЦІЯ
+            toolbarTitle: 'profile.center_photo'.tr(), 
             toolbarColor: AppColors.primary,
             toolbarWidgetColor: Colors.white,
             initAspectRatio: CropAspectRatioPreset.square,
@@ -73,7 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             hideBottomControls: true, 
           ),
           IOSUiSettings(
-            title: 'profile.center_photo'.tr(), // ЛОКАЛІЗАЦІЯ
+            title: 'profile.center_photo'.tr(), 
             aspectRatioLockEnabled: true,
             resetButtonHidden: true,
           ),
@@ -92,7 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _saveProfile() {
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState!.validate() && _hasChanges) {
       final user = UserModel(
         name: _nameController.text.trim(),
         weight: double.parse(_weightController.text.trim()),
@@ -103,23 +135,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       context.read<TrackerCubit>().saveUserProfile(user);
       
-      CustomSnackbar.showSuccess(context, 'profile.profile_updated'.tr()); // ЛОКАЛІЗАЦІЯ
+      setState(() {
+        _originalUser = user; 
+      });
+      
+      CustomSnackbar.showSuccess(context, 'profile.profile_updated'.tr());
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final tablet = isTablet(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    final horizontalPadding = tablet ? screenWidth * 0.15 : 24.0;
+    final contentPadding = EdgeInsets.symmetric(vertical: tablet ? 20 : 16, horizontal: 16);
+    final fontSize = tablet ? 18.0 : 16.0;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('profile.title'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)), // ЛОКАЛІЗАЦІЯ
+        title: Text('profile.title'.tr(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: tablet ? 24 : 20)), 
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: tablet ? 20.0 : 10.0),
+          physics: const BouncingScrollPhysics(),
           child: Form(
             key: _formKey,
             child: Column(
@@ -131,28 +175,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       GestureDetector(
                         onTap: _pickAvatar,
                         child: CircleAvatar(
-                          radius: 60,
+                          radius: tablet ? 80 : 60,
                           backgroundColor: Colors.grey.shade300,
                           backgroundImage: _avatarPath != null ? FileImage(File(_avatarPath!)) : null,
-                          child: _avatarPath == null ? Icon(IconsaxPlusLinear.user, size: 50, color: Colors.grey.shade600) : null,
+                          child: _avatarPath == null ? Icon(IconsaxPlusLinear.user, size: tablet ? 70 : 50, color: Colors.grey.shade600) : null,
                         ),
                       ),
                       Positioned(
                         bottom: 0,
-                        right: 4,
+                        right: tablet ? 8 : 4,
                         child: GestureDetector(
                           onTap: _pickAvatar,
                           child: Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: EdgeInsets.all(tablet ? 12 : 8),
                             decoration: const BoxDecoration(gradient: AppColors.premiumGradient, shape: BoxShape.circle),
-                            child: const Icon(IconsaxPlusLinear.camera, color: Colors.white, size: 18),
+                            child: Icon(IconsaxPlusLinear.camera, color: Colors.white, size: tablet ? 24 : 18),
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: tablet ? 32 : 24),
 
                 GestureDetector(
                   onTap: _changeTip,
@@ -161,7 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     curve: Curves.easeInOutCubic,
                     alignment: Alignment.topCenter,
                     child: Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(tablet ? 24 : 16),
                       decoration: BoxDecoration(
                         gradient: AppColors.cardGradient,
                         borderRadius: BorderRadius.circular(20),
@@ -172,17 +216,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Row(
                             children: [
-                              const Icon(IconsaxPlusBold.lamp_on, color: AppColors.primary),
+                              Icon(IconsaxPlusBold.lamp_on, color: AppColors.primary, size: tablet ? 32 : 24),
                               const SizedBox(width: 8),
                               Text(
-                                'profile.health_tip'.tr(), // ЛОКАЛІЗАЦІЯ
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary.withAlpha(180)),
+                                'profile.health_tip'.tr(), 
+                                style: TextStyle(fontSize: tablet ? 14 : 12, fontWeight: FontWeight.bold, color: AppColors.primary.withAlpha(180)),
                               ),
                               const Spacer(),
-                              Icon(IconsaxPlusLinear.refresh, size: 16, color: AppColors.primary.withAlpha(120)),
+                              Icon(IconsaxPlusLinear.refresh, size: tablet ? 20 : 16, color: AppColors.primary.withAlpha(120)),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: tablet ? 16 : 12),
                           AnimatedSwitcher(
                             duration: const Duration(milliseconds: 400),
                             transitionBuilder: (Widget child, Animation<double> animation) {
@@ -195,10 +239,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               );
                             },
                             child: Text(
-                              // ЛОКАЛІЗОВАНА БАЗА ПОРАД
                               healthTips[context.locale.languageCode]![_currentTipIndex],
                               key: ValueKey<String>('${context.locale.languageCode}_$_currentTipIndex'), 
-                              style: const TextStyle(fontSize: 14, height: 1.4, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+                              style: TextStyle(fontSize: tablet ? 18 : 14, height: 1.4, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
                             ),
                           ),
                         ],
@@ -206,22 +249,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 30),
+                SizedBox(height: tablet ? 40 : 30),
 
                 TextFormField(
                   controller: _nameController,
                   maxLength: 30,
-                  style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: fontSize),
                   decoration: InputDecoration(
-                    labelText: 'profile.name_hint'.tr(), // ЛОКАЛІЗАЦІЯ
-                    prefixIcon: const Icon(IconsaxPlusLinear.user),
+                    labelText: 'profile.name_hint'.tr(),
+                    labelStyle: TextStyle(fontSize: fontSize),
+                    prefixIcon: Icon(IconsaxPlusLinear.user, size: tablet ? 28 : 24),
                     filled: true,
                     fillColor: AppColors.surface,
+                    contentPadding: contentPadding,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                   ),
-                  validator: (v) => v!.isEmpty ? 'profile.enter_name'.tr() : null, // ЛОКАЛІЗАЦІЯ
+                  validator: (v) => v!.isEmpty ? 'profile.enter_name'.tr() : null, 
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: tablet ? 24 : 16),
 
                 Row(
                   children: [
@@ -229,15 +274,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: TextFormField(
                         controller: _weightController,
                         keyboardType: TextInputType.number,
-                        style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: fontSize),
                         decoration: InputDecoration(
-                          labelText: 'profile.weight_hint'.tr(), // ЛОКАЛІЗАЦІЯ
-                          prefixIcon: const Icon(IconsaxPlusLinear.weight),
+                          labelText: 'profile.weight_hint'.tr(), 
+                          labelStyle: TextStyle(fontSize: fontSize),
+                          prefixIcon: Icon(IconsaxPlusLinear.weight, size: tablet ? 28 : 24),
                           filled: true,
                           fillColor: AppColors.surface,
+                          contentPadding: contentPadding,
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                         ),
-                        validator: (v) => (double.tryParse(v ?? '') ?? 0) <= 0 ? 'profile.error_value'.tr() : null, // ЛОКАЛІЗАЦІЯ
+                        validator: (v) => (double.tryParse(v ?? '') ?? 0) <= 0 ? 'profile.error_value'.tr() : null,
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -245,23 +292,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: TextFormField(
                         controller: _heightController,
                         keyboardType: TextInputType.number,
-                        style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: fontSize),
                         decoration: InputDecoration(
-                          labelText: 'profile.height_hint'.tr(), // ЛОКАЛІЗАЦІЯ
-                          prefixIcon: const Icon(IconsaxPlusLinear.ruler),
+                          labelText: 'profile.height_hint'.tr(), 
+                          labelStyle: TextStyle(fontSize: fontSize),
+                          prefixIcon: Icon(IconsaxPlusLinear.ruler, size: tablet ? 28 : 24),
                           filled: true,
                           fillColor: AppColors.surface,
+                          contentPadding: contentPadding,
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                         ),
-                        validator: (v) => (double.tryParse(v ?? '') ?? 0) <= 0 ? 'profile.error_value'.tr() : null, // ЛОКАЛІЗАЦІЯ
+                        validator: (v) => (double.tryParse(v ?? '') ?? 0) <= 0 ? 'profile.error_value'.tr() : null, 
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 28),
+                SizedBox(height: tablet ? 40 : 28),
 
-                Text('profile.your_goal'.tr(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)), // ЛОКАЛІЗАЦІЯ
-                const SizedBox(height: 12),
+                Text('profile.your_goal'.tr(), style: TextStyle(fontSize: tablet ? 20 : 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)), 
+                SizedBox(height: tablet ? 16 : 12),
 
                 SegmentedButton<UserGoal>(
                   style: SegmentedButton.styleFrom(
@@ -270,19 +319,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     selectedForegroundColor: Colors.white,
                     side: BorderSide.none,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    padding: EdgeInsets.symmetric(vertical: tablet ? 16 : 8),
                   ),
                   segments: [
                     ButtonSegment(
                       value: UserGoal.loseWeight, 
-                      label: FittedBox(fit: BoxFit.scaleDown, child: Text('profile.cut'.tr())), // ЛОКАЛІЗАЦІЯ
+                      label: FittedBox(fit: BoxFit.scaleDown, child: Text('profile.cut'.tr(), style: TextStyle(fontSize: tablet ? 18 : 14))), 
                     ),
                     ButtonSegment(
                       value: UserGoal.maintain, 
-                      label: FittedBox(fit: BoxFit.scaleDown, child: Text('profile.maintain'.tr())), // ЛОКАЛІЗАЦІЯ
+                      label: FittedBox(fit: BoxFit.scaleDown, child: Text('profile.maintain'.tr(), style: TextStyle(fontSize: tablet ? 18 : 14))), 
                     ),
                     ButtonSegment(
                       value: UserGoal.gainWeight, 
-                      label: FittedBox(fit: BoxFit.scaleDown, child: Text('profile.bulk'.tr())), // ЛОКАЛІЗАЦІЯ
+                      label: FittedBox(fit: BoxFit.scaleDown, child: Text('profile.bulk'.tr(), style: TextStyle(fontSize: tablet ? 18 : 14))), 
                     ),
                   ],
                   selected: {_selectedGoal},
@@ -290,26 +340,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     setState(() => _selectedGoal = newSelection.first);
                   },
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: tablet ? 32 : 18),
 
-                Container(
-                  height: 56,
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  height: tablet ? 65 : 56,
                   decoration: BoxDecoration(
-                    gradient: AppColors.premiumGradient,
+                    gradient: _hasChanges ? AppColors.premiumGradient : null,
+                    color: _hasChanges ? null : Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [BoxShadow(color: AppColors.primary.withAlpha(76), blurRadius: 12, offset: const Offset(0, 4))],
+                    boxShadow: _hasChanges 
+                        ? [BoxShadow(color: AppColors.primary.withAlpha(76), blurRadius: 12, offset: const Offset(0, 4))] 
+                        : [],
                   ),
                   child: ElevatedButton(
-                    onPressed: _saveProfile,
+                    onPressed: _hasChanges ? _saveProfile : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
+                      disabledBackgroundColor: Colors.transparent, 
+                      disabledForegroundColor: Colors.grey.shade600,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: Text('profile.save_changes'.tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)), // ЛОКАЛІЗАЦІЯ
+                    child: Text(
+                      'profile.save_changes'.tr(), 
+                      style: TextStyle(fontSize: tablet ? 22 : 18, fontWeight: FontWeight.bold, color: _hasChanges ? Colors.white : Colors.grey.shade500)
+                    ),
                   ),
                 ),
-                const SizedBox(height: 3), // Відступ для нижнього меню
+                const SizedBox(height: 90), 
               ],
             ),
           ),

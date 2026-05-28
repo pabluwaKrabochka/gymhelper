@@ -22,12 +22,18 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const AnalyticsScreen(),
-    const GameScreen(), // ДОДАЛИ ГРУ СЮДИ (індекс 2)
-    const ProfileScreen(), // ПРОФІЛЬ ТЕПЕР ТУТ (індекс 3)
+    const GameScreen(), 
+    const ProfileScreen(), 
   ];
+
+  // Допоміжна функція для визначення розміру екрану
+  bool isTablet(BuildContext context) => MediaQuery.of(context).size.width >= 600;
 
   @override
   Widget build(BuildContext context) {
+    final tablet = isTablet(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       extendBody: true, 
@@ -42,8 +48,11 @@ class _MainScreenState extends State<MainScreen> {
 
       floatingActionButton: _currentIndex == 0
           ? Padding(
-              padding: const EdgeInsets.only(bottom: 0.0), 
+              // На планшеті трохи відсуваємо кнопку від правого краю та низу
+              padding: EdgeInsets.only(right: tablet ? 16.0 : 0.0, bottom: tablet ? 16.0 : 0.0), 
               child: Container(
+                width: tablet ? 70 : 56, // Збільшуємо FAB на планшеті
+                height: tablet ? 70 : 56,
                 decoration: BoxDecoration(
                   gradient: AppColors.premiumGradient,
                   shape: BoxShape.circle,
@@ -60,7 +69,7 @@ class _MainScreenState extends State<MainScreen> {
                   },
                   backgroundColor: Colors.transparent,
                   elevation: 0,
-                  child: const Icon(IconsaxPlusLinear.add, size: 28, color: Colors.white),
+                  child: Icon(IconsaxPlusLinear.add, size: tablet ? 32 : 28, color: Colors.white),
                 ),
               ),
             )
@@ -68,45 +77,53 @@ class _MainScreenState extends State<MainScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
 
       bottomNavigationBar: SafeArea(
-        child: Container(
-          margin: const EdgeInsets.only(left: 20, right: 20, bottom: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: [
-              BoxShadow(color: AppColors.primary.withAlpha(38), blurRadius: 20, offset: const Offset(0, 10)),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-              child: Container(
-                height: 70,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center, // Центруємо острівець
+            children: [
+              Container(
+                // На планшеті ширина фіксована (макс 600), на телефоні - на весь екран з відступами
+                width: tablet ? 600 : screenWidth - 40,
                 decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(191), 
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.white.withAlpha(127), width: 1.5),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildNavItem(0, IconsaxPlusLinear.home, IconsaxPlusBold.home, 'navbar.diary'.tr()),
-                    _buildNavItem(1, IconsaxPlusLinear.chart, IconsaxPlusBold.chart, 'navbar.analytics'.tr()),
-                    // 4 КНОПКА: ГРА
-                    _buildNavItem(2, Icons.sports_esports_outlined, Icons.sports_esports_rounded, 'navbar.game'.tr()),
-                    _buildNavItem(3, IconsaxPlusLinear.profile, IconsaxPlusBold.profile, 'navbar.profile'.tr()),
+                  borderRadius: BorderRadius.circular(tablet ? 40 : 30),
+                  boxShadow: [
+                    BoxShadow(color: AppColors.primary.withAlpha(38), blurRadius: 20, offset: const Offset(0, 10)),
                   ],
                 ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(tablet ? 40 : 30),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                    child: Container(
+                      height: tablet ? 85 : 70, // Панель трохи вища на планшеті
+                      padding: EdgeInsets.symmetric(horizontal: tablet ? 20 : 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(191), 
+                        borderRadius: BorderRadius.circular(tablet ? 40 : 30),
+                        border: Border.all(color: Colors.white.withAlpha(127), width: 1.5),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildNavItem(0, IconsaxPlusLinear.home, IconsaxPlusBold.home, 'navbar.diary'.tr(), tablet),
+                          _buildNavItem(1, IconsaxPlusLinear.chart, IconsaxPlusBold.chart, 'navbar.analytics'.tr(), tablet),
+                          _buildNavItem(2, Icons.sports_esports_outlined, Icons.sports_esports_rounded, 'navbar.game'.tr(), tablet),
+                          _buildNavItem(3, IconsaxPlusLinear.profile, IconsaxPlusBold.profile, 'navbar.profile'.tr(), tablet),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
+  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label, bool tablet) {
     final isSelected = _currentIndex == index;
 
     return GestureDetector(
@@ -119,10 +136,13 @@ class _MainScreenState extends State<MainScreen> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 350), 
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), // Зменшив horizontal padding для 4 кнопок
+        padding: EdgeInsets.symmetric(
+          horizontal: tablet ? 16 : 12, 
+          vertical: tablet ? 14 : 10
+        ),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary.withAlpha(38) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(tablet ? 25 : 20),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -130,7 +150,7 @@ class _MainScreenState extends State<MainScreen> {
             Icon(
               isSelected ? activeIcon : icon,
               color: isSelected ? AppColors.primary : AppColors.textSecondary,
-              size: 24, // Трохи зменшив іконку, щоб 4 кнопки красиво влізли
+              size: tablet ? 28 : 24, // Іконки більші на планшеті
             ),
             AnimatedSize(
               duration: const Duration(milliseconds: 350),
@@ -138,7 +158,7 @@ class _MainScreenState extends State<MainScreen> {
               child: SizedBox(
                 width: isSelected ? null : 0,
                 child: Padding(
-                  padding: EdgeInsets.only(left: isSelected ? 6.0 : 0.0),
+                  padding: EdgeInsets.only(left: isSelected ? (tablet ? 8.0 : 6.0) : 0.0),
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     child: Text(
@@ -146,7 +166,11 @@ class _MainScreenState extends State<MainScreen> {
                       key: ValueKey<String>(label),
                       maxLines: 1,
                       softWrap: false, 
-                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13), // Трохи зменшив шрифт
+                      style: TextStyle(
+                        color: AppColors.primary, 
+                        fontWeight: FontWeight.bold, 
+                        fontSize: tablet ? 16 : 13 // Шрифт більший на планшеті
+                      ), 
                     ),
                   ),
                 ),

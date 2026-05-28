@@ -2,11 +2,11 @@ import 'package:easy_localization/easy_localization.dart'; // Додано ім�
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gymhelper/features/profile/data/profile_repository.dart';
+import 'package:gymhelper/features/splash_screen.dart';
 import 'package:gymhelper/features/tracker/presentation/screens/profile_setup_screen.dart';
 import 'app/di/service_locator.dart' as di;
 import 'app/theme/app_theme.dart';
 import 'features/tracker/presentation/cubit/tracker_cubit.dart';
-import 'features/tracker/presentation/screens/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,7 +57,7 @@ class MyApp extends StatelessWidget {
         },
         // ------------------------------------
 
-        home: hasProfile ? const MainScreen() : const ProfileSetupScreen(),
+        home: hasProfile ? const SplashScreen() : const ProfileSetupScreen(),
         debugShowCheckedModeBanner: false,
         
         // --- ПІДКЛЮЧЕННЯ EASY LOCALIZATION ДО FLUTTER ---

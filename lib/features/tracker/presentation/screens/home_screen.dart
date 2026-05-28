@@ -9,12 +9,22 @@ import '../cubit/tracker_cubit.dart';
 import '../cubit/tracker_state.dart';
 import '../../../../data/models/meal_record_model.dart';
 import 'add_meal_screen.dart';
+import '../../../../core/constants/color_constants.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  // Допоміжна функція для визначення розміру екрану
+  bool isTablet(BuildContext context) => MediaQuery.of(context).size.width >= 600;
+
   @override
   Widget build(BuildContext context) {
+    final tablet = isTablet(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    // Динамічний відступ по боках для списку та елементів
+    final hPadding = tablet ? screenWidth * 0.1 : 16.0;
+
     return BlocBuilder<TrackerCubit, TrackerState>(
       builder: (context, state) {
         final cubit = context.read<TrackerCubit>();
@@ -39,7 +49,7 @@ class HomeScreen extends StatelessWidget {
         Widget fireWidget;
 
         if (streak >= 30) {
-          fireSize = 36.0; // Максимальний розмір
+          fireSize = 36.0; 
           streakColor = Colors.red;
           bgColor = Colors.red.withAlpha(30);
           fireWidget = Lottie.asset('assets/fire.json', fit: BoxFit.contain);
@@ -59,27 +69,34 @@ class HomeScreen extends StatelessWidget {
           bgColor = Colors.orange.withAlpha(30);
           fireWidget = Lottie.asset('assets/fire.json', fit: BoxFit.contain);
         } else {
-          // Якщо менше 3 днів (1 або 2) - сіра заглушка
           fireSize = 24.0;
           streakColor = Colors.grey;
           bgColor = Colors.grey.withAlpha(30);
           fireWidget = const Icon(Icons.local_fire_department_rounded, color: Colors.grey, size: 20);
         }
 
+        // Збільшуємо вогонь для планшету
+        if (tablet) fireSize *= 1.3;
+
         return Scaffold(
+          backgroundColor: AppColors.background,
           appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
             title: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('home.my_day'.tr()), 
+                Text(
+                  'home.my_day'.tr(), 
+                  style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: tablet ? 26 : 20)
+                ), 
                 const SizedBox(width: 8),
-                // --- СТРІК ВІДЖЕТ ---
                 GestureDetector(
-                  onTap: () => _showStreakInfoDialog(context, streak),
+                  onTap: () => _showStreakInfoDialog(context, streak, tablet),
                   behavior: HitTestBehavior.opaque,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 400),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: tablet ? 12 : 8, vertical: tablet ? 6 : 4),
                     decoration: BoxDecoration(
                       color: bgColor,
                       borderRadius: BorderRadius.circular(12),
@@ -96,7 +113,7 @@ class HomeScreen extends StatelessWidget {
                         const SizedBox(width: 4),
                         AnimatedDefaultTextStyle(
                           duration: const Duration(milliseconds: 400),
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: streakColor),
+                          style: TextStyle(fontSize: tablet ? 20 : 16, fontWeight: FontWeight.bold, color: streakColor),
                           child: Text('$streak'),
                         ),
                       ],
@@ -112,9 +129,10 @@ class HomeScreen extends StatelessWidget {
                 child: ActionChip(
                   label: Text(
                     context.locale.languageCode == 'en' ? '🇺🇸 EN' : '🇺🇦 UK',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: tablet ? 16 : 14),
                   ),
                   backgroundColor: Theme.of(context).colorScheme.surface,
+                  padding: EdgeInsets.all(tablet ? 8 : 4),
                   side: BorderSide.none,
                   onPressed: () {
                     if (context.locale.languageCode == 'uk') {
@@ -132,25 +150,25 @@ class HomeScreen extends StatelessWidget {
             child: Column(
               key: ValueKey(context.locale.languageCode), 
               children: [
-                _buildDateSelector(context, state.selectedDate),
-                const SizedBox(height: 20),
+                _buildDateSelector(context, state.selectedDate, hPadding, tablet),
+                SizedBox(height: tablet ? 30 : 20),
 
-                _buildCalorieProgress(consumedCalories, goalCalories, isOverLimit, context),
-                const SizedBox(height: 20),
+                _buildCalorieProgress(consumedCalories, goalCalories, isOverLimit, context, tablet),
+                SizedBox(height: tablet ? 30 : 20),
 
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: hPadding),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildMacroItem(context, 'analytics.proteins'.tr(), cubit.totalDailyProteins, goalProteins.toDouble(), Colors.blue),
-                      _buildMacroItem(context, 'analytics.fats'.tr(), cubit.totalDailyFats, goalFats.toDouble(), Colors.orange),
-                      _buildMacroItem(context, 'analytics.carbs'.tr(), cubit.totalDailyCarbs, goalCarbs.toDouble(), Colors.green),
+                      _buildMacroItem(context, 'analytics.proteins'.tr(), cubit.totalDailyProteins, goalProteins.toDouble(), Colors.blue, tablet),
+                      _buildMacroItem(context, 'analytics.fats'.tr(), cubit.totalDailyFats, goalFats.toDouble(), Colors.orange, tablet),
+                      _buildMacroItem(context, 'analytics.carbs'.tr(), cubit.totalDailyCarbs, goalCarbs.toDouble(), Colors.green, tablet),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                SizedBox(height: tablet ? 30 : 20),
                 const Divider(),
 
                 Expanded(
@@ -162,64 +180,111 @@ class HomeScreen extends StatelessWidget {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Lottie.asset('assets/food.json', width: 180, height: 180, repeat: false),
-                                const SizedBox(height: 16),
+                                Lottie.asset('assets/food.json', width: tablet ? 250 : 180, height: tablet ? 250 : 180, repeat: false),
+                                SizedBox(height: tablet ? 24 : 16),
                                 Text(
                                   'home.no_meals'.tr(), 
-                                  style: const TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500),
+                                  style: TextStyle(color: Colors.grey, fontSize: tablet ? 20 : 16, fontWeight: FontWeight.w500),
                                 ),
-                                const SizedBox(height: 100),
+                                SizedBox(height: tablet ? 150 : 100),
                               ],
                             ),
                           )
                         : ListView.builder(
                             key: const ValueKey('list'), 
+                            padding: EdgeInsets.symmetric(horizontal: hPadding), 
+                            physics: const BouncingScrollPhysics(),
                             itemCount: state.meals.length,
                             itemBuilder: (context, index) {
                               final meal = state.meals[index];
                               
-                              return Dismissible(
-                                key: ValueKey(meal.id),
-                                direction: DismissDirection.endToStart,
-                                background: Container(
-                                  alignment: Alignment.centerRight,
-                                  padding: const EdgeInsets.only(right: 20),
-                                  color: Colors.red.shade400,
-                                  child: const Icon(IconsaxPlusLinear.trash, color: Colors.white),
-                                ),
-                                confirmDismiss: (direction) async {
-                                  return await DialogUtils.showConfirmDialog(
-                                    context,
-                                    title: 'home.delete_entry'.tr(),
-                                    content: 'home.delete_confirm'.tr(namedArgs: {'name': meal.foodName}),
-                                    confirmText: 'home.delete'.tr(),
-                                    cancelText: 'home.cancel'.tr(),
-                                  );
-                                },
-                                onDismissed: (direction) {
-                                  if (meal.id != null) {
-                                    context.read<TrackerCubit>().deleteMealRecord(meal.id!);
-                                    CustomSnackbar.showSuccess(context, 'home.deleted_success'.tr(namedArgs: {'name': meal.foodName}));
-                                  }
-                                },
-                                child: ListTile(
-                                  leading: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer, shape: BoxShape.circle),
-                                    child: const Icon(IconsaxPlusLinear.reserve),
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12.0),
+                                child: Dismissible(
+                                  key: ValueKey(meal.id),
+                                  direction: DismissDirection.endToStart,
+                                  background: Container(
+                                    alignment: Alignment.centerRight,
+                                    padding: const EdgeInsets.only(right: 20),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.shade400,
+                                      borderRadius: BorderRadius.circular(20), 
+                                    ),
+                                    child: Icon(IconsaxPlusLinear.trash, color: Colors.white, size: tablet ? 32 : 24),
                                   ),
-                                  title: Text(meal.foodName),
-                                  subtitle: Text(
-                                    '${_getMealTypeName(meal.mealType)} • ${meal.proteins} ${'units.p'.tr()} ${meal.fats} ${'units.f'.tr()} ${meal.carbs} ${'units.c'.tr()}',
-                                    style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 13),
-                                  ),
-                                  trailing: Text(
-                                    '${meal.calories} ${'units.kcal'.tr()}',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                  ),
-                                  onTap: () {
-                                    Navigator.push(context, MaterialPageRoute(builder: (_) => AddMealScreen(mealToEdit: meal)));
+                                  confirmDismiss: (direction) async {
+                                    return await DialogUtils.showConfirmDialog(
+                                      context,
+                                      title: 'home.delete_entry'.tr(),
+                                      content: 'home.delete_confirm'.tr(namedArgs: {'name': meal.foodName}),
+                                      confirmText: 'home.delete'.tr(),
+                                      cancelText: 'home.cancel'.tr(),
+                                    );
                                   },
+                                  onDismissed: (direction) {
+                                    if (meal.id != null) {
+                                      context.read<TrackerCubit>().deleteMealRecord(meal.id!);
+                                      CustomSnackbar.showSuccess(context, 'home.deleted_success'.tr(namedArgs: {'name': meal.foodName}));
+                                    }
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surface, 
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.textSecondary.withAlpha(15), 
+                                          blurRadius: 10, 
+                                          offset: const Offset(0, 4)
+                                        )
+                                      ],
+                                    ),
+                                    child: ListTile(
+                                      contentPadding: EdgeInsets.symmetric(horizontal: tablet ? 24 : 16, vertical: tablet ? 12 : 8),
+                                      leading: Container(
+                                        padding: EdgeInsets.all(tablet ? 16 : 12),
+                                        decoration: BoxDecoration(
+                                          color: _getMealColor(meal.mealType).withAlpha(30), 
+                                          shape: BoxShape.circle
+                                        ),
+                                        child: Icon(_getMealIcon(meal.mealType), color: _getMealColor(meal.mealType), size: tablet ? 32 : 24),
+                                      ),
+                                      title: Text(meal.foodName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: tablet ? 20 : 16)),
+                                      subtitle: Padding(
+                                        padding: const EdgeInsets.only(top: 8.0),
+                                        child: Wrap(
+                                          spacing: 6, 
+                                          runSpacing: 4,
+                                          crossAxisAlignment: WrapCrossAlignment.center,
+                                          children: [
+                                            Text(
+                                              _getMealTypeName(meal.mealType),
+                                              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600, fontSize: tablet ? 14 : 12),
+                                            ),
+                                            _buildMacroBadge('${meal.proteins} ${'units.p'.tr()}', Colors.blue, tablet),
+                                            _buildMacroBadge('${meal.fats} ${'units.f'.tr()}', Colors.orange, tablet),
+                                            _buildMacroBadge('${meal.carbs} ${'units.c'.tr()}', Colors.green, tablet),
+                                          ],
+                                        ),
+                                      ),
+                                      trailing: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            '${meal.calories}',
+                                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: tablet ? 24 : 18, color: AppColors.textPrimary),
+                                          ),
+                                          Text(
+                                            'units.kcal'.tr(),
+                                            style: TextStyle(fontWeight: FontWeight.w500, fontSize: tablet ? 14 : 11, color: Colors.grey),
+                                          ),
+                                        ],
+                                      ),
+                                      onTap: () {
+                                        Navigator.push(context, MaterialPageRoute(builder: (_) => AddMealScreen(mealToEdit: meal)));
+                                      },
+                                    ),
+                                  ),
                                 ),
                               );
                             },
@@ -234,8 +299,39 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // --- ДІАЛОГОВЕ ВІКНО СТРІКУ ---
-  void _showStreakInfoDialog(BuildContext context, int streak) {
+  Widget _buildMacroBadge(String text, Color color, bool tablet) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: tablet ? 8 : 6, vertical: tablet ? 4 : 2),
+      decoration: BoxDecoration(
+        color: color.withAlpha(20),
+        borderRadius: BorderRadius.circular(tablet ? 8 : 6),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: tablet ? 13 : 11),
+      ),
+    );
+  }
+
+  IconData _getMealIcon(MealType type) {
+    switch (type) {
+      case MealType.breakfast: return Icons.wb_sunny_rounded; 
+      case MealType.lunch: return Icons.lunch_dining_rounded; 
+      case MealType.dinner: return Icons.nights_stay_rounded; 
+      case MealType.snack: return Icons.apple_rounded;        
+    }
+  }
+
+  Color _getMealColor(MealType type) {
+    switch (type) {
+      case MealType.breakfast: return Colors.orange;
+      case MealType.lunch: return Colors.green;
+      case MealType.dinner: return Colors.indigo;
+      case MealType.snack: return Colors.red;
+    }
+  }
+
+  void _showStreakInfoDialog(BuildContext context, int streak, bool tablet) {
     showDialog(
       context: context,
       builder: (context) {
@@ -246,26 +342,27 @@ class HomeScreen extends StatelessWidget {
               Icon(
                 streak >= 3 ? Icons.local_fire_department_rounded : Icons.local_fire_department_outlined, 
                 color: streak >= 3 ? Colors.orange : Colors.grey,
-                size: 28,
+                size: tablet ? 36 : 28,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: tablet ? 12 : 8),
               Expanded(
-                child: Text('home.streak_title'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                child: Text('home.streak_title'.tr(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: tablet ? 24 : 20)),
               ),
             ],
           ),
           content: Text(
             'home.streak_desc'.tr(),
-            style: const TextStyle(fontSize: 15, height: 1.4),
+            style: TextStyle(fontSize: tablet ? 18 : 15, height: 1.4),
           ),
           actions: [
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
+                padding: EdgeInsets.symmetric(horizontal: tablet ? 24 : 16, vertical: tablet ? 16 : 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () => Navigator.pop(context),
-              child: Text('home.streak_btn'.tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text('home.streak_btn'.tr(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: tablet ? 18 : 16)),
             )
           ],
         );
@@ -273,17 +370,17 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDateSelector(BuildContext context, DateTime currentDate) {
+  Widget _buildDateSelector(BuildContext context, DateTime currentDate, double hPadding, bool tablet) {
     final formatter = DateFormat('dd MMMM yyyy', context.locale.languageCode == 'en' ? 'en_US' : 'uk_UA');
     final isToday = DateUtils.isSameDay(currentDate, DateTime.now());
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: EdgeInsets.symmetric(horizontal: hPadding),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(IconsaxPlusLinear.arrow_square_left),
+            icon: Icon(IconsaxPlusLinear.arrow_square_left, size: tablet ? 32 : 24),
             onPressed: () => context.read<TrackerCubit>().changeDate(currentDate.subtract(const Duration(days: 1))),
           ),
           AnimatedSwitcher(
@@ -292,11 +389,11 @@ class HomeScreen extends StatelessWidget {
             child: Text(
               isToday ? 'home.today'.tr() : formatter.format(currentDate),
               key: ValueKey(currentDate.toIso8601String() + context.locale.languageCode),
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: tablet ? 22 : 18, fontWeight: FontWeight.w600),
             ),
           ),
           IconButton(
-            icon: const Icon(IconsaxPlusLinear.arrow_square_right),
+            icon: Icon(IconsaxPlusLinear.arrow_square_right, size: tablet ? 32 : 24),
             onPressed: isToday ? null : () => context.read<TrackerCubit>().changeDate(currentDate.add(const Duration(days: 1))),
           ),
         ],
@@ -304,47 +401,65 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCalorieProgress(int consumed, int goal, bool isOverLimit, BuildContext context) {
+  Widget _buildCalorieProgress(int consumed, int goal, bool isOverLimit, BuildContext context, bool tablet) {
     final progress = goal > 0 ? (consumed / goal).clamp(0.0, 1.0) : 0.0;
     final color = isOverLimit ? Colors.red : Theme.of(context).colorScheme.primary;
+
+    // Адаптивний розмір кільця
+    final circleSize = tablet ? 220.0 : 150.0;
+    final strokeWidth = tablet ? 18.0 : 12.0;
 
     return Stack(
       alignment: Alignment.center,
       children: [
         SizedBox(
-          width: 150,
-          height: 150,
+          width: circleSize,
+          height: circleSize,
           child: TweenAnimationBuilder<double>(
             tween: Tween<double>(begin: 0, end: progress),
             duration: const Duration(milliseconds: 800),
             curve: Curves.easeOutCubic,
             builder: (context, value, _) {
-              return CircularProgressIndicator(value: value, strokeWidth: 12, backgroundColor: Colors.grey.shade200, color: color);
+              return CircularProgressIndicator(
+                value: value, 
+                strokeWidth: strokeWidth, 
+                backgroundColor: Colors.grey.shade200, 
+                color: color
+              );
             },
           ),
         ),
         Column(
           children: [
-            Text('$consumed', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: color)),
-            Text('/ $goal ${'units.kcal'.tr()}', style: const TextStyle(color: Colors.grey)),
+            Text('$consumed', style: TextStyle(fontSize: tablet ? 48 : 32, fontWeight: FontWeight.bold, color: color)),
+            Text('/ $goal ${'units.kcal'.tr()}', style: TextStyle(color: Colors.grey, fontSize: tablet ? 18 : 14)),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildMacroItem(BuildContext context, String title, double consumed, double goal, Color color) {
+  Widget _buildMacroItem(BuildContext context, String title, double consumed, double goal, Color color, bool tablet) {
     final progress = goal > 0 ? (consumed / goal).clamp(0.0, 1.0) : 0.0;
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4.0),
         child: Column(
           children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(value: progress, backgroundColor: Colors.grey.shade200, color: color, minHeight: 8, borderRadius: BorderRadius.circular(4)),
-            const SizedBox(height: 8),
-            Text('${consumed.toInt()} / ${goal.toInt()} ${'units.g'.tr()}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+            Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: tablet ? 16 : 12)),
+            SizedBox(height: tablet ? 12 : 8),
+            LinearProgressIndicator(
+              value: progress, 
+              backgroundColor: Colors.grey.shade200, 
+              color: color, 
+              minHeight: tablet ? 12 : 8, 
+              borderRadius: BorderRadius.circular(4)
+            ),
+            SizedBox(height: tablet ? 12 : 8),
+            Text(
+              '${consumed.toInt()} / ${goal.toInt()} ${'units.g'.tr()}', 
+              style: TextStyle(fontSize: tablet ? 14 : 10, color: Colors.grey)
+            ),
           ],
         ),
       ),
