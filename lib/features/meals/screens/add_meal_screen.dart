@@ -11,7 +11,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../../../data/models/meal_record_model.dart';
 import '../../../../core/constants/color_constants.dart';
 
-import 'add_extra_item_screen.dart'; 
+import 'add_extra_item_screen.dart';
 
 class AddMealScreen extends StatelessWidget {
   final MealRecordModel? mealToEdit;
@@ -21,14 +21,15 @@ class AddMealScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => AddMealCubit()..init(mealToEdit),
-      child: const _AddMealScreenView(),
+      create: (context) => AddMealCubit(), // Ініціалізацію перенесено в initState View
+      child: _AddMealScreenView(mealToEdit: mealToEdit),
     );
   }
 }
 
 class _AddMealScreenView extends StatefulWidget {
-  const _AddMealScreenView();
+  final MealRecordModel? mealToEdit;
+  const _AddMealScreenView({this.mealToEdit});
 
   @override
   State<_AddMealScreenView> createState() => _AddMealScreenViewState();
@@ -46,7 +47,19 @@ class _AddMealScreenViewState extends State<_AddMealScreenView> {
 
   bool isTablet(BuildContext context) => MediaQuery.of(context).size.width >= 600;
 
- @override
+  String _getLocalizedName(String savedName, String langCode) {
+  if (savedName.isEmpty) return '';
+  try {
+    return foodDatabase.firstWhere(
+      (f) => f.nameUk.toLowerCase() == savedName.toLowerCase() || 
+             f.nameEn.toLowerCase() == savedName.toLowerCase()
+    ).getName(langCode);
+  } catch (_) {
+    return savedName; 
+  }
+}
+
+  @override
   void initState() {
     super.initState();
     _weightGramsController = TextEditingController();
@@ -54,7 +67,12 @@ class _AddMealScreenViewState extends State<_AddMealScreenView> {
     _proteinsController = TextEditingController();
     _fatsController = TextEditingController();
     _carbsController = TextEditingController();
-   
+
+    // Запускаємо ініціалізацію після того, як екран повністю збудується.
+    // Це змусить listener зловити оновлений state і заповнити контролери!
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AddMealCubit>().init(widget.mealToEdit);
+    });
   }
 
   @override
@@ -76,7 +94,6 @@ class _AddMealScreenViewState extends State<_AddMealScreenView> {
           ? state.mainFood!.nameUk 
           : (_autoCompleteController?.text.trim() ?? 'Прийом їжі');
 
-      // ВИПРАВЛЕНО: Додано "final savedAddons =" та "final savedDrinks ="
       final savedAddons = state.selectedAddons.map((a) => ExtraItemRecord(
         foodName: a.food.nameUk,
         weight: a.weight,
@@ -156,13 +173,21 @@ class _AddMealScreenViewState extends State<_AddMealScreenView> {
 
     return BlocConsumer<AddMealCubit, AddMealState>(
       listener: (context, state) {
+        // Оновлюємо поля лише якщо вони відрізняються (щоб не стерти те, що ввів користувач)
         if (_caloriesController.text != state.totalCalories.toString()) {
           _caloriesController.text = state.totalCalories.toString();
+        }
+        if (_proteinsController.text != state.totalProteins.toStringAsFixed(1)) {
           _proteinsController.text = state.totalProteins.toStringAsFixed(1);
+        }
+        if (_fatsController.text != state.totalFats.toStringAsFixed(1)) {
           _fatsController.text = state.totalFats.toStringAsFixed(1);
+        }
+        if (_carbsController.text != state.totalCarbs.toStringAsFixed(1)) {
           _carbsController.text = state.totalCarbs.toStringAsFixed(1);
         }
-        // Коли Cubit вирахує вагу основної страви, показуємо її
+        
+        // Встановлюємо вирахувану вагу основної страви при редагуванні
         if (state.mainWeight > 0 && _weightGramsController.text.isEmpty) {
           _weightGramsController.text = state.mainWeight.round().toString();
         }
@@ -193,36 +218,37 @@ class _AddMealScreenViewState extends State<_AddMealScreenView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Autocomplete<FoodItemData>(
-                        initialValue: TextEditingValue(text: state.foodName),
-                        optionsBuilder: (TextEditingValue text) {
-                          if (text.text.isEmpty) return const Iterable<FoodItemData>.empty();
-                          return foodDatabase.where((f) => f.getName(langCode).toLowerCase().contains(text.text.toLowerCase()));
-                        },
-                        displayStringForOption: (FoodItemData option) => option.getName(langCode),
-                        onSelected: (FoodItemData selection) {
-                          cubit.selectMainFood(selection);
-                          FocusScope.of(context).unfocus(); 
-                        },
-                        fieldViewBuilder: (context, textController, focusNode, onFieldSubmitted) {
-                          _autoCompleteController = textController;
-                          return TextFormField(
-                            controller: textController,
-                            focusNode: focusNode,
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: tablet ? 18 : 16, color: AppColors.textPrimary),
-                            decoration: InputDecoration(
-                              labelText: 'add_meal.what_did_you_eat'.tr(),
-                              hintText: 'add_meal.example_food'.tr(),
-                              prefixIcon: Icon(IconsaxPlusLinear.reserve, size: tablet ? 28 : 24),
-                              filled: true,
-                              fillColor: AppColors.surface,
-                              contentPadding: contentPadding,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                            ),
-                            onChanged: (val) => cubit.updateName(val),
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'add_meal.please_enter_name'.tr() : null,
-                          );
-                        },
+                     Autocomplete<FoodItemData>(
+  // ВИКОРИСТОВУЄМО ФУНКЦІЮ ДЛЯ ПЕРЕКЛАДУ ПОЧАТКОВОГО ЗНАЧЕННЯ:
+  initialValue: TextEditingValue(text: _getLocalizedName(widget.mealToEdit?.foodName ?? '', langCode)),
+  optionsBuilder: (TextEditingValue text) {
+    if (text.text.isEmpty) return const Iterable<FoodItemData>.empty();
+    return foodDatabase.where((f) => f.getName(langCode).toLowerCase().contains(text.text.toLowerCase()));
+  },
+  displayStringForOption: (FoodItemData option) => option.getName(langCode),
+  onSelected: (FoodItemData selection) {
+    cubit.selectMainFood(selection);
+    FocusScope.of(context).unfocus(); 
+  },
+  fieldViewBuilder: (context, textController, focusNode, onFieldSubmitted) {
+    _autoCompleteController = textController;
+    return TextFormField(
+      controller: textController,
+      focusNode: focusNode,
+      style: TextStyle(fontWeight: FontWeight.w600, fontSize: tablet ? 18 : 16, color: AppColors.textPrimary),
+      decoration: InputDecoration(
+        labelText: 'add_meal.what_did_you_eat'.tr(),
+        hintText: 'add_meal.example_food'.tr(),
+        prefixIcon: Icon(IconsaxPlusLinear.reserve, size: tablet ? 28 : 24),
+        filled: true,
+        fillColor: AppColors.surface,
+        contentPadding: contentPadding,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      ),
+      onChanged: (val) => cubit.updateName(val),
+      validator: (v) => (v == null || v.trim().isEmpty) ? 'add_meal.please_enter_name'.tr() : null,
+    );
+  },
                         optionsViewBuilder: (context, onSelected, options) {
                           return Align(
                             alignment: Alignment.topLeft,
@@ -277,7 +303,7 @@ class _AddMealScreenViewState extends State<_AddMealScreenView> {
                       ),
                       SizedBox(height: tablet ? 24 : 16),
 
-                      Text("Добавки", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
+                      Text('add_meal.addons'.tr(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
                       const SizedBox(height: 8),
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
@@ -286,7 +312,7 @@ class _AddMealScreenViewState extends State<_AddMealScreenView> {
                           children: [
                             ActionChip(
                               avatar: const Icon(Icons.add_rounded, size: 18),
-                              label: const Text('Додати'),
+                              label: Text('add_meal.add_item'.tr()),
                               backgroundColor: AppColors.primary.withAlpha(30),
                               side: BorderSide.none,
                               onPressed: () => _navigateToAddExtra(false),
@@ -307,7 +333,7 @@ class _AddMealScreenViewState extends State<_AddMealScreenView> {
                       ),
                       SizedBox(height: tablet ? 24 : 16),
 
-                      Text("Напої", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
+                      Text('add_meal.drinks'.tr(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
                       const SizedBox(height: 8),
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
@@ -316,7 +342,7 @@ class _AddMealScreenViewState extends State<_AddMealScreenView> {
                           children: [
                             ActionChip(
                               avatar: const Icon(Icons.add_rounded, size: 18),
-                              label: const Text('Додати'),
+                              label: Text('add_meal.add_item'.tr()),
                               backgroundColor: AppColors.primary.withAlpha(30),
                               side: BorderSide.none,
                               onPressed: () => _navigateToAddExtra(true),

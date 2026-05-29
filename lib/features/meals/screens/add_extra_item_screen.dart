@@ -8,7 +8,7 @@ import '../../../../core/constants/color_constants.dart';
 
 
 class AddExtraItemScreen extends StatefulWidget {
-  final bool isDrink; // true = напій, false = добавка
+  final bool isDrink;
 
   const AddExtraItemScreen({super.key, required this.isDrink});
 
@@ -27,12 +27,11 @@ class _AddExtraItemScreenState extends State<AddExtraItemScreen> {
     if (_formKey.currentState!.validate() && _selectedFood != null) {
       final weight = double.parse(_weightController.text.replaceAll(',', '.').trim());
       
-      // Повертаємо об'єкт із вибраним продуктом та його вагою
       final result = SelectedFoodItem(food: _selectedFood!, weight: weight);
       Navigator.pop(context, result);
     } else if (_selectedFood == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Будь ласка, виберіть продукт зі списку')),
+        SnackBar(content: Text('add_meal.please_select_item'.tr())), // Локалізовано!
       );
     }
   }
@@ -45,8 +44,10 @@ class _AddExtraItemScreenState extends State<AddExtraItemScreen> {
     final horizontalPadding = tablet ? screenWidth * 0.15 : 20.0;
     
     final database = widget.isDrink ? drinkDatabase : addonDatabase;
-    final title = widget.isDrink ? 'Додати напій' : 'Додати добавку'; // Можна винести в локалізацію
-    final weightLabel = widget.isDrink ? 'Об\'єм (мл)' : 'Вага (г)';
+    
+    // Локалізовані заголовки
+    final title = widget.isDrink ? 'add_meal.add_drink'.tr() : 'add_meal.add_addon'.tr();
+    final weightLabel = widget.isDrink ? 'add_meal.volume_ml'.tr() : 'add_meal.weight_g'.tr();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -81,14 +82,14 @@ class _AddExtraItemScreenState extends State<AddExtraItemScreen> {
                       focusNode: focusNode,
                       style: TextStyle(fontWeight: FontWeight.w600, fontSize: tablet ? 18 : 16, color: AppColors.textPrimary),
                       decoration: InputDecoration(
-                        labelText: 'Пошук',
+                        labelText: 'add_meal.search'.tr(), // Локалізовано!
                         prefixIcon: Icon(widget.isDrink ? Icons.local_cafe_rounded : Icons.water_drop_rounded, size: tablet ? 28 : 24),
                         filled: true,
                         fillColor: AppColors.surface,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                       ),
                       onChanged: (val) => setState(() => _selectedFood = null),
-                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Обов\'язкове поле' : null,
+                      validator: (v) => (v == null || v.trim().isEmpty) ? 'profile.error_value'.tr() : null,
                     );
                   },
                   optionsViewBuilder: (context, onSelected, options) {
@@ -107,9 +108,11 @@ class _AddExtraItemScreenState extends State<AddExtraItemScreen> {
                             itemCount: options.length,
                             itemBuilder: (context, index) {
                               final option = options.elementAt(index);
+                              // Формуємо рядок типу "ккал / 100 г" або "ккал / 100 мл"
+                              final unit = widget.isDrink ? 'add_meal.per_100ml'.tr() : 'add_meal.per_100g'.tr();
                               return ListTile(
                                 title: Text(option.getName(langCode), style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                                subtitle: Text('${option.calories} ккал / 100 ${widget.isDrink ? 'мл' : 'г'}', style: TextStyle(color: AppColors.textSecondary)),
+                                subtitle: Text('${option.calories} ${'add_meal.kcal_per_100g'.tr()} $unit', style: TextStyle(color: AppColors.textSecondary)),
                                 onTap: () => onSelected(option),
                               );
                             },

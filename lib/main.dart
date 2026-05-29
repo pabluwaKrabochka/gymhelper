@@ -9,10 +9,6 @@ import 'package:gymhelper/features/profile/screens/profile_setup_screen.dart';
 import 'app/di/service_locator.dart' as di;
 import 'app/theme/app_theme.dart';
 import 'features/tracker/presentation/cubit/tracker_cubit.dart';
-
-
-// --- ДОДАНО ІМПОРТ ФАЙЛУ З БАЗОЮ ПРОДУКТІВ ---
-// (Перевір, чи правильний шлях до файлу у твоєму проекті)
 import 'core/constants/food_database.dart'; 
 
 void main() async {

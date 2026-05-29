@@ -16,7 +16,11 @@
     "deleted_success": "\"{name}\" deleted",
     "streak_title": "Your Streak",
     "streak_desc": "Log your meals and weight every day to build your streak! The fire lights up after 3 consecutive days. Don't break the streak!",
-    "streak_btn": "Got it!"
+    "streak_btn": "Got it!",
+    "meal_details": "Meal Details",
+    "edit": "Edit",
+    "meal_composition": "Meal Composition",
+    "total": "Total"
   },
   "add_meal": {
     "add_title": "Add Meal",
@@ -32,7 +36,18 @@
     "save": "Save",
     "update": "Update",
     "please_enter_name": "Please enter a name",
-    "kcal_per_100g": "kcal / 100g"
+    "addons": "Add-ons",
+    "drinks": "Drinks",
+    "add_item": "Add",
+    "add_drink": "Add Drink",
+    "add_addon": "Add Add-on",
+    "volume_ml": "Volume (ml)",
+    "weight_g": "Weight (g)",
+    "search": "Search",
+    "please_select_item": "Please select an item from the list",
+    "kcal_per_100g": "kcal / 100",
+    "per_100g": "g",
+    "per_100ml": "ml"
   },
   "profile_setup": {
     "welcome": "Let's get acquainted! 👋",
