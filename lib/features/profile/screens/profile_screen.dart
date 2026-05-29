@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // ВАЖЛИВО ДЛЯ FilteringTextInputFormatter
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gymhelper/app/utils/custom_snackbar.dart';
 import 'package:gymhelper/features/tracker/presentation/cubit/tracker_cubit.dart';
@@ -7,9 +8,9 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart'; 
 import 'package:easy_localization/easy_localization.dart'; 
-import '../../../../data/models/user_model.dart';
-import '../../../../core/constants/color_constants.dart';
-import '../../../../core/constants/tips_database.dart'; 
+import '../../../data/models/user_model.dart';
+import '../../../core/constants/color_constants.dart';
+import '../../../core/constants/tips_database.dart'; 
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -39,9 +40,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _originalUser = context.read<TrackerCubit>().state.user;
     
+    // Якщо вага/зріст цілі (напр. 80.0), прибираємо дробову частину для зручності
+    final initialWeight = _originalUser?.weight.toInt().toString() ?? '';
+    final initialHeight = _originalUser?.height.toInt().toString() ?? '';
+
     _nameController = TextEditingController(text: _originalUser?.name ?? '');
-    _weightController = TextEditingController(text: _originalUser?.weight.toString() ?? '');
-    _heightController = TextEditingController(text: _originalUser?.height.toString() ?? '');
+    _weightController = TextEditingController(text: initialWeight);
+    _heightController = TextEditingController(text: initialHeight);
     _selectedGoal = _originalUser?.goal ?? UserGoal.maintain;
     _avatarPath = _originalUser?.avatarPath;
 
@@ -127,6 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_formKey.currentState!.validate() && _hasChanges) {
       final user = UserModel(
         name: _nameController.text.trim(),
+        // Поля тепер приймають тільки цифри, тому parse безпечний
         weight: double.parse(_weightController.text.trim()),
         height: double.parse(_heightController.text.trim()),
         goal: _selectedGoal,
@@ -151,6 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final horizontalPadding = tablet ? screenWidth * 0.15 : 24.0;
     final contentPadding = EdgeInsets.symmetric(vertical: tablet ? 20 : 16, horizontal: 16);
     final fontSize = tablet ? 18.0 : 16.0;
+    final smallFontSize = tablet ? 16.0 : 13.0; // Зменшений шрифт для підписів полів в рядку
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -188,7 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onTap: _pickAvatar,
                           child: Container(
                             padding: EdgeInsets.all(tablet ? 12 : 8),
-                            decoration: const BoxDecoration(gradient: AppColors.premiumGradient, shape: BoxShape.circle),
+                            decoration: BoxDecoration(gradient: AppColors.premiumGradient, shape: BoxShape.circle),
                             child: Icon(IconsaxPlusLinear.camera, color: Colors.white, size: tablet ? 24 : 18),
                           ),
                         ),
@@ -269,40 +276,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 SizedBox(height: tablet ? 24 : 16),
 
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start, // Вирівнюємо по верхньому краю для помилок
                   children: [
                     Expanded(
                       child: TextFormField(
                         controller: _weightController,
                         keyboardType: TextInputType.number,
+                        maxLength: 3,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                         style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: fontSize),
                         decoration: InputDecoration(
+                          counterText: '', // Ховаємо лічильник символів
                           labelText: 'profile.weight_hint'.tr(), 
-                          labelStyle: TextStyle(fontSize: fontSize),
-                          prefixIcon: Icon(IconsaxPlusLinear.weight, size: tablet ? 28 : 24),
+                          labelStyle: TextStyle(fontSize: smallFontSize),
+                          prefixIcon: Icon(IconsaxPlusLinear.weight, size: tablet ? 28 : 22),
                           filled: true,
                           fillColor: AppColors.surface,
                           contentPadding: contentPadding,
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                         ),
-                        validator: (v) => (double.tryParse(v ?? '') ?? 0) <= 0 ? 'profile.error_value'.tr() : null,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'profile.err_empty'.tr();
+                          if (v.length < 2) return 'profile.err_min_chars'.tr();
+                          
+                          final val = int.tryParse(v);
+                          if (val == null) return 'profile.err_empty'.tr();
+                          if (val < 30 || val > 190) return 'profile.err_weight_range'.tr();
+                          
+                          return null;
+                        },
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: TextFormField(
                         controller: _heightController,
                         keyboardType: TextInputType.number,
+                        maxLength: 3,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                         style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: fontSize),
                         decoration: InputDecoration(
+                          counterText: '', // Ховаємо лічильник символів
                           labelText: 'profile.height_hint'.tr(), 
-                          labelStyle: TextStyle(fontSize: fontSize),
-                          prefixIcon: Icon(IconsaxPlusLinear.ruler, size: tablet ? 28 : 24),
+                          labelStyle: TextStyle(fontSize: smallFontSize),
+                          prefixIcon: Icon(IconsaxPlusLinear.ruler, size: tablet ? 28 : 22),
                           filled: true,
                           fillColor: AppColors.surface,
                           contentPadding: contentPadding,
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                         ),
-                        validator: (v) => (double.tryParse(v ?? '') ?? 0) <= 0 ? 'profile.error_value'.tr() : null, 
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'profile.err_empty'.tr();
+                          if (v.length < 2) return 'profile.err_min_chars'.tr();
+                          
+                          final val = int.tryParse(v);
+                          if (val == null) return 'profile.err_empty'.tr();
+                          if (val < 100 || val > 250) return 'profile.err_height_range'.tr();
+                          
+                          return null;
+                        },
                       ),
                     ),
                   ],

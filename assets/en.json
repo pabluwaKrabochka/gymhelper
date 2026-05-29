@@ -34,6 +34,11 @@
     "please_enter_name": "Please enter a name",
     "kcal_per_100g": "kcal / 100g"
   },
+  "profile_setup": {
+    "welcome": "Let's get acquainted! 👋",
+    "subtitle": "Enter your details so we can calculate your ideal daily macros.",
+    "start": "Start"
+  },
   "profile": {
     "title": "My Profile",
     "center_photo": "Center photo",
@@ -48,7 +53,11 @@
     "maintain": "Maintain",
     "bulk": "Bulk",
     "save_changes": "Save Changes",
-    "profile_updated": "Profile updated!"
+    "profile_updated": "Profile updated!",
+    "err_empty": "Field is required",
+    "err_min_chars": "Min 2 digits",
+    "err_weight_range": "Must be 30-190 kg",
+    "err_height_range": "Must be 100-250 cm"
   },
   "meal_types": {
     "breakfast": "Breakfast",
@@ -134,7 +143,8 @@
     "rank_7_desc": "Dedication and speed at the highest level.",
     "rank_8_desc": "Small, but incredibly dangerous and fast!",
     "rank_9_desc": "Legendary status is near. You are almost at the top.",
-    "rank_10_desc": "Absolute champion! Reaction beyond human limits."
+    "rank_10_desc": "Absolute champion! Reaction beyond human limits.",
+    "unlock_points": "Points to unlock"
   },
   "splash": {
     "subtitle": "Your perfect rhythm"

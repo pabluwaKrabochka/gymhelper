@@ -29,9 +29,9 @@ class QuickAmountChips extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(IconsaxPlusLinear.add, size: 16, color: AppColors.primary),
+                Icon(IconsaxPlusLinear.add, size: 16, color: AppColors.primary),
                 const SizedBox(width: 4),
-                Text(label, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 15)),
+                Text(label, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 15)),
               ],
             ),
           ),

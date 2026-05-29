@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lottie/lottie.dart'; // ДОДАНО ІМПОРТ LOTTIE
 import '../../../../core/constants/color_constants.dart';
 import '../presentation/game_state.dart'; 
 import 'ranks_info_screen.dart'; 
@@ -233,13 +234,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             ),
             SizedBox(height: tablet ? 32 : 24),
 
-            // --- ТАБЛИЦЯ ЛІДЕРІВ ---
+            // --- ТАБЛИЦЯ ЛІДЕРІВ АБО ПОРОЖНІЙ СТАН ---
             Expanded(
               child: Container(
                 width: double.infinity,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: AppColors.surface,
-                  borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
                 ),
                 child: Column(
                   children: [
@@ -250,10 +251,27 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       child: _isLoading 
                         ? const Center(child: CircularProgressIndicator())
                         : scoresList.isEmpty
+                          // --- АДАПТИВНИЙ ПОРОЖНІЙ СТАН З АНІМАЦІЄЮ ---
                           ? Center(
-                              child: Text(
-                                'game.no_games_this_month'.tr(),
-                                style: TextStyle(color: AppColors.textSecondary, fontSize: tablet ? 20 : 16),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Lottie.asset(
+                                    'assets/game.json', 
+                                    width: screenWidth * (tablet ? 0.3 : 0.45), // Адаптивний розмір
+                                    repeat: false, // Або true, якщо хочеш щоб вона грала постійно
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'game.no_games_this_month'.tr(),
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary, 
+                                      fontSize: tablet ? 20 : 16,
+                                      fontWeight: FontWeight.w500
+                                    ),
+                                  ),
+                                  const SizedBox(height: 50), // Піднімаємо трохи вище від нижнього краю
+                                ],
                               ),
                             )
                           : ListView.builder(

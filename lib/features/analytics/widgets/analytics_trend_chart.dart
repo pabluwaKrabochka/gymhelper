@@ -208,7 +208,7 @@ class _AnalyticsTrendChartState extends State<AnalyticsTrendChart> {
                 padding: const EdgeInsets.only(top: 10.0),
                 child: Text(
                   value.toInt().toString(), 
-                  style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.bold),
                 ),
               );
             }

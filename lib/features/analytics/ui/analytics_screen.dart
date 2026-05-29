@@ -37,6 +37,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+     
         title: Text(
           'analytics.title'.tr(), 
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: tablet ? 24 : 20)
@@ -429,25 +430,41 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  void _showWeightDialog(BuildContext context, {WeightRecordModel? recordToEdit}) {
+ void _showWeightDialog(BuildContext context, {WeightRecordModel? recordToEdit}) {
     final isEditing = recordToEdit != null;
     final TextEditingController weightController = TextEditingController(text: isEditing ? recordToEdit.weight.toString() : '');
-    
+    final formKey = GlobalKey<FormState>(); // ДОДАНО КЛЮЧ ФОРМИ
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: AppColors.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(isEditing ? 'analytics.update'.tr() : 'analytics.new_weighing'.tr(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
-          content: TextField(
-            controller: weightController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            autofocus: true,
-            decoration: InputDecoration(
-              labelText: 'analytics.your_weight_kg'.tr(),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              filled: true,
-              fillColor: AppColors.background,
+          title: Text(isEditing ? 'analytics.update'.tr() : 'analytics.new_weighing'.tr(), textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: weightController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              autofocus: true,
+              maxLength: 5, // Максимум символів, напр. 150.5
+              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                counterText: '', // Ховаємо лічильник
+                labelText: 'analytics.your_weight_kg'.tr(),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                filled: true,
+                fillColor: AppColors.background,
+              ),
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) return 'profile.error_value'.tr();
+                final val = double.tryParse(v.replaceAll(',', '.'));
+                if (val == null || val < 20 || val > 350) {
+                  return '${'profile.error_value'.tr()} (20-350)';
+                }
+                return null;
+              },
             ),
           ),
           actionsPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8),
@@ -458,7 +475,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   child: TextButton(
                     onPressed: () => Navigator.pop(context),
                     style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                    child: Text('analytics.cancel'.tr(), style: const TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+                    child: Text('analytics.cancel'.tr(), style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -466,8 +483,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 12)),
                     onPressed: () {
-                      final w = double.tryParse(weightController.text.replaceAll(',', '.'));
-                      if (w != null && w > 0) {
+                      if (formKey.currentState!.validate()) { // ПЕРЕВІРКА ВАЛІДАЦІЇ
+                        final w = double.parse(weightController.text.replaceAll(',', '.'));
                         if (isEditing && recordToEdit.id != null) {
                           context.read<TrackerCubit>().updateWeightRecord(recordToEdit.id!, w, recordToEdit.date);
                         } else {

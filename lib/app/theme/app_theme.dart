@@ -13,9 +13,10 @@ class AppTheme {
       // ВКАЗУЄМО НАШ НОВИЙ ШРИФТ ГЛОБАЛЬНО
       fontFamily: 'ScienceGothic', 
 
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.textPrimary,
+        scrolledUnderElevation: 0,
         elevation: 0,
         centerTitle: true,
         // Заголовок AppBar завжди Bold:
@@ -46,6 +47,7 @@ class AppTheme {
       fontFamily: 'ScienceGothic', 
 
       appBarTheme: AppBarTheme(
+        scrolledUnderElevation: 0,
         backgroundColor: Colors.grey[900],
         foregroundColor: Colors.white,
         elevation: 0,

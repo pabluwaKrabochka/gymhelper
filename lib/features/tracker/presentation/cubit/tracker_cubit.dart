@@ -55,7 +55,7 @@ class TrackerCubit extends Cubit<TrackerState> {
     int currentStreak = prefs.getInt('current_streak') ?? 1;
 
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day); // Відкидаємо години/хвилини
+    final today = DateTime(now.year, now.month, now.day); 
 
     if (lastOpenedStr != null) {
       final lastOpened = DateTime.parse(lastOpenedStr);
@@ -64,13 +64,12 @@ class TrackerCubit extends Cubit<TrackerState> {
       final difference = today.difference(lastOpenedDay).inDays;
 
       if (difference == 1) {
-        currentStreak++; // Зайшов на наступний день -> стрік росте
+        currentStreak++; 
       } else if (difference > 1) {
-        currentStreak = 1; // Пропустив день -> стрік згорів
+        currentStreak = 1; 
       }
     }
 
-    // Зберігаємо сьогоднішню дату та новий стрік
     await prefs.setString('last_opened_date', today.toIso8601String());
     await prefs.setInt('current_streak', currentStreak);
 
@@ -99,6 +98,7 @@ class TrackerCubit extends Cubit<TrackerState> {
     loadDailyData(date: newDate);
   }
 
+  // ВИПРАВЛЕНО: Додані параметри addons та drinks
   Future<void> addMealRecord({
     required String foodName,
     required int calories,
@@ -106,6 +106,8 @@ class TrackerCubit extends Cubit<TrackerState> {
     required double fats,
     required double carbs,
     required MealType mealType,
+    List<ExtraItemRecord> addons = const [],
+    List<ExtraItemRecord> drinks = const [],
   }) async {
     try {
       final newMeal = MealRecordModel(
@@ -116,6 +118,8 @@ class TrackerCubit extends Cubit<TrackerState> {
         carbs: carbs,
         date: state.selectedDate,
         mealType: mealType,
+        addons: addons,
+        drinks: drinks,
       );
       await _repository.addMeal(newMeal);
       await loadDailyData();
@@ -124,6 +128,7 @@ class TrackerCubit extends Cubit<TrackerState> {
     }
   }
 
+  // ВИПРАВЛЕНО: Додані параметри addons та drinks
   Future<void> updateMealRecord({
     required int id,
     required String foodName,
@@ -133,6 +138,8 @@ class TrackerCubit extends Cubit<TrackerState> {
     required double carbs,
     required MealType mealType,
     required DateTime date,
+    List<ExtraItemRecord> addons = const [],
+    List<ExtraItemRecord> drinks = const [],
   }) async {
     try {
       final updatedMeal = MealRecordModel(
@@ -144,6 +151,8 @@ class TrackerCubit extends Cubit<TrackerState> {
         carbs: carbs,
         date: date,
         mealType: mealType,
+        addons: addons,
+        drinks: drinks,
       );
       await _repository.updateMeal(updatedMeal);
       await loadDailyData();

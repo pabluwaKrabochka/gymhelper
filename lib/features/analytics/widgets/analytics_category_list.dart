@@ -49,9 +49,9 @@ class AnalyticsCategoryList extends StatelessWidget {
                 decoration: BoxDecoration(color: color.withAlpha(40), shape: BoxShape.circle),
                 child: Icon(IconsaxPlusLinear.category, color: color),
               ),
-              title: Text(categoryName, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-              subtitle: Text('${percent.toStringAsFixed(1)}%', style: const TextStyle(color: AppColors.textSecondary)),
-              trailing: Text('${amount.toStringAsFixed(2)} $mainCurrency', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
+              title: Text(categoryName, style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+              subtitle: Text('${percent.toStringAsFixed(1)}%', style: TextStyle(color: AppColors.textSecondary)),
+              trailing: Text('${amount.toStringAsFixed(2)} $mainCurrency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
             ),
           );
         },

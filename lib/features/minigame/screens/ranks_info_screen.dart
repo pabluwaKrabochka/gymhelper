@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'dart:math' show pi;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; 
@@ -76,11 +75,10 @@ class _RanksInfoScreenState extends State<RanksInfoScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Ініціалізуємо контролер тут, щоб мати доступ до MediaQuery для визначення планшету
     if (!_isControllerInitialized) {
       final tablet = isTablet(context);
       _pageController = PageController(
-        viewportFraction: tablet ? 0.45 : 0.72, // На планшеті картка займає 45% ширини екрану
+        viewportFraction: tablet ? 0.45 : 0.75, 
         initialPage: 0
       );
       _pageController.addListener(() {
@@ -125,112 +123,87 @@ class _RanksInfoScreenState extends State<RanksInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isLoaded) return const Scaffold(backgroundColor: AppColors.background, body: Center(child: CircularProgressIndicator()));
+    if (!_isLoaded) return Scaffold(backgroundColor: AppColors.background, body: const Center(child: CircularProgressIndicator()));
 
     final tablet = isTablet(context);
-    Color ambientColor = displayRanks[_currentPage.round().clamp(0, displayRanks.length - 1)].color;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      extendBodyBehindAppBar: true, 
       appBar: AppBar(
         title: Text('game.ranks_info'.tr(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: tablet ? 24 : 20)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Stack(
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // ЕМБІЄНТ ФОН
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 500),
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: const Alignment(0, 0.1), 
-                radius: 1.5,
-                colors: [
-                  ambientColor.withAlpha(40), 
-                  AppColors.background,       
-                ],
-              ),
+          SizedBox(
+            height: tablet ? 600 : 480, 
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: displayRanks.length,
+              physics: const BouncingScrollPhysics(),
+              itemBuilder: (context, index) {
+                final rank = displayRanks[index];
+                
+                double scale = 1.0;
+                double blurRadius = 0.0;
+                double verticalOffset = 0.0; 
+
+                if (_pageController.position.haveDimensions) {
+                  double difference = (_currentPage - index).abs();
+                  scale = (1 - (difference * 0.15)).clamp(0.85, 1.0);
+                  blurRadius = (1 - difference).clamp(0.0, 1.0) * (tablet ? 40.0 : 30.0); 
+                  verticalOffset = (difference * (tablet ? 40.0 : 30.0)); 
+                } else if (index == 0) {
+                  scale = 1.0;
+                  blurRadius = tablet ? 40.0 : 30.0;
+                  verticalOffset = 0.0;
+                }
+
+                bool isActive = scale == 1.0;
+                bool isInitiallyFlipped = _flippedRanks.contains(rank.nameKey);
+
+                return Transform.translate(
+                  offset: Offset(0, verticalOffset), 
+                  child: Transform.scale(
+                    scale: scale,
+                    child: RankFlipCard(
+                      rank: rank,
+                      isActive: isActive,
+                      blurRadius: blurRadius,
+                      isInitiallyFlipped: isInitiallyFlipped,
+                      isTablet: tablet, 
+                      onFlipped: () => _markAsFlipped(rank.nameKey),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
+          SizedBox(height: tablet ? 40 : 30),
           
-          Column(
+          // ІНДИКАТОР ГОРТАННЯ
+          Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                height: tablet ? 600 : 480, // Адаптивна висота каруселі
-                child: PageView.builder(
-                  controller: _pageController,
-                  itemCount: displayRanks.length,
-                  physics: const BouncingScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    final rank = displayRanks[index];
-                    
-                    double scale = 1.0;
-                    double blurRadius = 0.0;
-                    double opacity = 0.3;
-                    double verticalOffset = 0.0; 
-
-                    if (_pageController.position.haveDimensions) {
-                      double difference = (_currentPage - index).abs();
-                      scale = (1 - (difference * 0.15)).clamp(0.85, 1.0);
-                      blurRadius = (1 - difference).clamp(0.0, 1.0) * (tablet ? 45.0 : 35.0); 
-                      opacity = (1 - difference).clamp(0.3, 1.0);
-                      verticalOffset = (difference * (tablet ? 40.0 : 30.0)); 
-                    } else if (index == 0) {
-                      scale = 1.0;
-                      blurRadius = tablet ? 45.0 : 35.0;
-                      opacity = 1.0;
-                      verticalOffset = 0.0;
-                    }
-
-                    bool isActive = scale == 1.0;
-                    bool isInitiallyFlipped = _flippedRanks.contains(rank.nameKey);
-
-                    return Transform.translate(
-                      offset: Offset(0, verticalOffset), 
-                      child: Transform.scale(
-                        scale: scale,
-                        child: RankFlipCard(
-                          rank: rank,
-                          isActive: isActive,
-                          opacity: opacity,
-                          blurRadius: blurRadius,
-                          isInitiallyFlipped: isInitiallyFlipped,
-                          isTablet: tablet, // Передаємо параметр планшету
-                          onFlipped: () => _markAsFlipped(rank.nameKey),
-                        ),
-                      ),
-                    );
-                  },
+            children: List.generate(displayRanks.length, (index) {
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: _currentPage.round() == index ? (tablet ? 40 : 30) : (tablet ? 12 : 8),
+                height: tablet ? 12 : 8,
+                decoration: BoxDecoration(
+                  color: _currentPage.round() == index 
+                      ? displayRanks[index].color 
+                      : Colors.grey.shade600.withAlpha(100),
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: _currentPage.round() == index ? [
+                    BoxShadow(color: displayRanks[index].color.withAlpha(150), blurRadius: 10)
+                  ] : [],
                 ),
-              ),
-              SizedBox(height: tablet ? 40 : 30),
-              
-              // ІНДИКАТОР ГОРТАННЯ
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(displayRanks.length, (index) {
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: _currentPage.round() == index ? (tablet ? 40 : 30) : (tablet ? 12 : 8),
-                    height: tablet ? 12 : 8,
-                    decoration: BoxDecoration(
-                      color: _currentPage.round() == index 
-                          ? displayRanks[index].color 
-                          : Colors.grey.shade600.withAlpha(100),
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: _currentPage.round() == index ? [
-                        BoxShadow(color: displayRanks[index].color.withAlpha(150), blurRadius: 10)
-                      ] : [],
-                    ),
-                  );
-                }),
-              ),
-            ],
+              );
+            }),
           ),
         ],
       ),
@@ -238,13 +211,9 @@ class _RanksInfoScreenState extends State<RanksInfoScreen> {
   }
 }
 
-// =====================================================================
-// 3D КАРТКА З ПЕРЕГОРТАННЯМ ТА ПУЛЬСАЦІЄЮ
-// =====================================================================
 class RankFlipCard extends StatefulWidget {
   final RankData rank;
   final bool isActive;
-  final double opacity;
   final double blurRadius;
   final bool isInitiallyFlipped;
   final bool isTablet;
@@ -254,7 +223,6 @@ class RankFlipCard extends StatefulWidget {
     super.key,
     required this.rank,
     required this.isActive,
-    required this.opacity,
     required this.blurRadius,
     required this.isInitiallyFlipped,
     required this.isTablet,
@@ -353,60 +321,82 @@ class _RankFlipCardState extends State<RankFlipCard> with SingleTickerProviderSt
     );
   }
 
-  // --- БАЗОВИЙ КОНТЕЙНЕР ---
+  // --- БАЗОВИЙ КОНТЕЙНЕР (Багатошарова м'яка тінь) ---
   Widget _buildCardBase(Widget child) {
-    final radius = widget.isTablet ? 50.0 : 35.0;
+    final radius = widget.isTablet ? 40.0 : 30.0;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
       decoration: BoxDecoration(
+        color: AppColors.surface, 
         borderRadius: BorderRadius.circular(radius), 
         border: Border.all(
-          color: widget.rank.color.withAlpha((widget.opacity * 180).toInt()), 
-          width: widget.isActive ? (widget.isTablet ? 3.5 : 2.5) : 1.0
+          color: widget.rank.color.withAlpha(widget.isActive ? 255 : 50), 
+          width: widget.isActive ? (widget.isTablet ? 3.0 : 2.0) : 1.0
         ),
-        boxShadow: [
-          BoxShadow(
-            color: widget.rank.color.withAlpha((widget.opacity * 120).toInt()),
-            blurRadius: widget.blurRadius,
-            spreadRadius: widget.isActive ? (widget.isTablet ? 12 : 8) : 0,
-            offset: const Offset(0, 0),
-          ),
-        ],
+        // МАГІЯ М'ЯКОГО НЕОНУ: Використовуємо 3 шари тіней з різним розмиттям
+        boxShadow: widget.isActive && widget.blurRadius > 0
+            ? [
+                BoxShadow(
+                  color: widget.rank.color.withAlpha(50),
+                  blurRadius: widget.blurRadius * 0.3,
+                  spreadRadius: 3,
+                ),
+                BoxShadow(
+                  color: widget.rank.color.withAlpha(30),
+                  blurRadius: widget.blurRadius,
+                  spreadRadius: widget.isTablet ? 4 : 2,
+                ),
+                BoxShadow(
+                  color: widget.rank.color.withAlpha(10),
+                  blurRadius: widget.blurRadius * 1.5,
+                  spreadRadius: widget.isTablet ? 8 : 4,
+                ),
+              ]
+            : [],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface.withAlpha(widget.isActive ? 220 : 150),
-            ),
-            child: child,
-          ),
-        ),
+        child: child,
       ),
     );
   }
 
-  // --- СПИНА КАРТКИ З ПУЛЬСАЦІЄЮ ---
+  // --- СПИНА КАРТКИ ---
   Widget _buildBack(RankData rank) {
-    return Center(
-      child: ScaleTransition(
-        scale: _pulseAnimation,
-        child: Container(
-          padding: EdgeInsets.all(widget.isTablet ? 60 : 40),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(color: rank.color.withAlpha(100), blurRadius: widget.isTablet ? 60 : 40, spreadRadius: widget.isTablet ? 15 : 10)
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.surface,
+            rank.color.withAlpha(20),
+          ]
+        )
+      ),
+      child: Center(
+        child: ScaleTransition(
+          scale: _pulseAnimation,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: EdgeInsets.all(widget.isTablet ? 50 : 35),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(color: rank.color.withAlpha(50), blurRadius: widget.isTablet ? 50 : 30, spreadRadius: 5)
+                  ],
+                  gradient: RadialGradient(
+                    colors: [rank.color.withAlpha(80), Colors.transparent],
+                  ),
+                ),
+                child: Icon(rank.icon, color: rank.color.withAlpha(200), size: widget.isTablet ? 120 : 80),
+              ),
             ],
-            gradient: RadialGradient(
-              colors: [rank.color.withAlpha(150), rank.color.withAlpha(0)],
-            ),
           ),
-          child: Icon(rank.icon, color: rank.color, size: widget.isTablet ? 140 : 100),
         ),
       ),
     );
@@ -414,54 +404,69 @@ class _RankFlipCardState extends State<RankFlipCard> with SingleTickerProviderSt
 
   // --- ЛИЦЕ КАРТКИ ---
   Widget _buildFront(RankData rank) {
-    return Padding(
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            rank.color.withAlpha(30),
+            AppColors.surface,
+          ]
+        )
+      ),
       padding: EdgeInsets.all(widget.isTablet ? 32 : 24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: EdgeInsets.all(widget.isTablet ? 28 : 20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  rank.color.withAlpha(widget.isActive ? 100 : 30),
-                  rank.color.withAlpha(widget.isActive ? 20 : 10),
-                ]
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(rank.icon, color: rank.color, size: widget.isTablet ? 40 : 32),
+              SizedBox(width: widget.isTablet ? 16 : 12),
+              Flexible(
+                child: Text(
+                  rank.nameKey.tr(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: widget.isTablet ? 32 : 24, 
+                    fontWeight: FontWeight.w900, 
+                    color: AppColors.textPrimary, // Темний/світлий текст, який видно на фоні
+                  ),
+                ),
               ),
-              shape: BoxShape.circle,
-              boxShadow: widget.isActive ? [
-                BoxShadow(color: rank.color.withAlpha(50), blurRadius: 20, spreadRadius: 5)
-              ] : [],
-            ),
-            child: Icon(rank.icon, color: rank.color, size: widget.isTablet ? 70 : 50),
+            ],
           ),
-          SizedBox(height: widget.isTablet ? 32 : 24),
-          Text(
-            rank.nameKey.tr(),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: widget.isTablet ? 36 : 28, 
-              fontWeight: FontWeight.w900, 
-              color: rank.color,
-              shadows: [Shadow(color: rank.color.withAlpha(100), blurRadius: 10, offset: const Offset(0, 2))]
-            ),
-          ),
-          const SizedBox(height: 12),
+          SizedBox(height: widget.isTablet ? 40 : 32),
+          
           Container(
-            padding: EdgeInsets.symmetric(horizontal: widget.isTablet ? 24 : 16, vertical: widget.isTablet ? 12 : 8),
+            padding: EdgeInsets.symmetric(horizontal: widget.isTablet ? 32 : 24, vertical: widget.isTablet ? 16 : 12),
             decoration: BoxDecoration(
-              color: AppColors.background.withAlpha(200),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: rank.color.withAlpha(50)),
+              color: rank.color.withAlpha(25),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: rank.color.withAlpha(100), width: 1.5),
             ),
-            child: Text(
-              rank.minScore == 120 ? '120+ очок' : '${rank.minScore} - ${rank.minScore + 14} очок',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: widget.isTablet ? 20 : 16, color: rank.color.withAlpha(200)),
+            child: Column(
+              children: [
+                Text(
+                  'game.unlock_points'.tr(), // ЛОКАЛІЗОВАНО!
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: widget.isTablet ? 16 : 12, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  rank.minScore == 120 ? '120+' : '${rank.minScore} - ${rank.minScore + 14}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900, 
+                    fontSize: widget.isTablet ? 28 : 22, 
+                    color: rank.color,
+                  ),
+                ),
+              ],
             ),
           ),
-          SizedBox(height: widget.isTablet ? 32 : 24),
+          
+          SizedBox(height: widget.isTablet ? 40 : 32),
+          
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -471,8 +476,8 @@ class _RankFlipCardState extends State<RankFlipCard> with SingleTickerProviderSt
                 style: TextStyle(
                   fontSize: widget.isTablet ? 18 : 15, 
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary.withAlpha((widget.opacity * 255).toInt()), 
-                  height: 1.5
+                  color: AppColors.textSecondary, // Темний/світлий текст для опису
+                  height: 1.6
                 ),
               ),
             ),

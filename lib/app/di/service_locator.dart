@@ -1,4 +1,8 @@
 import 'package:get_it/get_it.dart';
+import 'package:gymhelper/core/theme_cubit.dart';
+import 'package:gymhelper/data/repositories/theme_repository.dart';
+import 'package:gymhelper/data/services/storage/theme_local_storage.dart';
+import 'package:gymhelper/domain/usecases/theme_usecases.dart';
 import 'package:gymhelper/features/profile/data/profile_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -24,4 +28,23 @@ Future<void> init() async {
 
   // Cubits (додамо сюди ProfileRepository пізніше)
   sl.registerFactory(() => TrackerCubit(sl(), sl())); // Оновимо Cubit на наступному кроці
+
+  // --- ТЕМА (CLEAN ARCHITECTURE) ---
+  sl.registerLazySingleton<ThemeLocalStorage>(() => ThemeLocalStorage());
+  
+  sl.registerLazySingleton<ThemeRepository>(
+    () => ThemeRepository(sl()),
+  );
+  
+  sl.registerLazySingleton<LoadThemeUseCase>(
+    () => LoadThemeUseCase(sl()),
+  );
+  
+  sl.registerLazySingleton<SaveThemeUseCase>(
+    () => SaveThemeUseCase(sl()),
+  );
+  
+  sl.registerFactory<ThemeCubit>(
+    () => ThemeCubit(loadTheme: sl(), saveTheme: sl()),
+  );
 }

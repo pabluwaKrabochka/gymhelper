@@ -32,7 +32,7 @@ class AmountAndCurrencyInput extends StatelessWidget {
             child: TextFormField(
               controller: amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
               decoration: InputDecoration(
                 hintText: '0.00',
                 hintStyle: TextStyle(color: Colors.grey[400]),
@@ -83,10 +83,10 @@ class AmountAndCurrencyInput extends StatelessWidget {
                 children: [
                   Text(
                     selectedCurrency,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(IconsaxPlusLinear.arrow_down_1, color: AppColors.textSecondary, size: 18),
+                  Icon(IconsaxPlusLinear.arrow_down_1, color: AppColors.textSecondary, size: 18),
                 ],
               ),
             ),

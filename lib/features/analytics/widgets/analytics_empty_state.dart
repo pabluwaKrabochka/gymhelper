@@ -18,7 +18,7 @@ class AnalyticsEmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             isExpense ? 'Немає витрат для аналізу' : 'Немає доходів для аналізу',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 100),
         ],

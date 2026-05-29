@@ -6,7 +6,7 @@ class DatabaseService {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('health_tracker_v2.db'); // Змінили назву файлу
+    _database = await _initDB('health_tracker_v2.db'); 
     return _database!;
   }
 
@@ -16,8 +16,9 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // ВАЖЛИВО: Змінили версію на 2
       onCreate: _createDB,
+      onUpgrade: _upgradeDB, // Додано логіку оновлення існуючої бази
     );
   }
 
@@ -31,7 +32,9 @@ class DatabaseService {
         fats REAL NOT NULL,
         carbs REAL NOT NULL,
         date TEXT NOT NULL,
-        mealType TEXT NOT NULL
+        mealType TEXT NOT NULL,
+        addons TEXT NOT NULL DEFAULT '[]', -- Зберігаємо як JSON рядок
+        drinks TEXT NOT NULL DEFAULT '[]'  -- Зберігаємо як JSON рядок
       )
     ''');
 
@@ -42,5 +45,13 @@ class DatabaseService {
         date TEXT NOT NULL
       )
     ''');
+  }
+
+  // Функція для оновлення існуючої бази (додасть колонки до старої таблиці)
+  Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute("ALTER TABLE meals ADD COLUMN addons TEXT NOT NULL DEFAULT '[]'");
+      await db.execute("ALTER TABLE meals ADD COLUMN drinks TEXT NOT NULL DEFAULT '[]'");
+    }
   }
 }
